@@ -1,0 +1,72 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{D30A6AF6-09C8-4774-AFE5-DEA03404CD47}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="UnitTest\RapidGenericsTestSuite.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="PerformanceTest\Containers.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="PerformanceTest\Dictionaries.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="PerformanceTest\Sortings.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="RapidGenericsTestSuite">
+        <MSBuild Projects="UnitTest\RapidGenericsTestSuite.dproj"/>
+    </Target>
+    <Target Name="RapidGenericsTestSuite:Clean">
+        <MSBuild Projects="UnitTest\RapidGenericsTestSuite.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="RapidGenericsTestSuite:Make">
+        <MSBuild Projects="UnitTest\RapidGenericsTestSuite.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Containers">
+        <MSBuild Projects="PerformanceTest\Containers.dproj"/>
+    </Target>
+    <Target Name="Containers:Clean">
+        <MSBuild Projects="PerformanceTest\Containers.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Containers:Make">
+        <MSBuild Projects="PerformanceTest\Containers.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Dictionaries">
+        <MSBuild Projects="PerformanceTest\Dictionaries.dproj"/>
+    </Target>
+    <Target Name="Dictionaries:Clean">
+        <MSBuild Projects="PerformanceTest\Dictionaries.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Dictionaries:Make">
+        <MSBuild Projects="PerformanceTest\Dictionaries.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Sortings">
+        <MSBuild Projects="PerformanceTest\Sortings.dproj"/>
+    </Target>
+    <Target Name="Sortings:Clean">
+        <MSBuild Projects="PerformanceTest\Sortings.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Sortings:Make">
+        <MSBuild Projects="PerformanceTest\Sortings.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="RapidGenericsTestSuite;Containers;Dictionaries;Sortings"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="RapidGenericsTestSuite:Clean;Containers:Clean;Dictionaries:Clean;Sortings:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="RapidGenericsTestSuite:Make;Containers:Make;Dictionaries:Make;Sortings:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
