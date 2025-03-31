@@ -22,7 +22,7 @@ The original library could not be used in a real application due to several issu
 * Exception handling refactored using functions similar to Delphi 12 RTL with better error messages
 * Local variables renamed for clarity (e.g., distinguishing them from properties like `Count`)
 * Unused code removed
-* Warnings silenced (most via `{$WARNINTS OFF}` when the compiler cannot detect variable initialization inside a `case` statement)
+* Warnings silenced (most via `{$WARNINGS OFF}` when the compiler cannot detect variable initialization inside a `case` statement)
 
 ### 📌 TArray Improvements
 * Implemented missing methods: `IndexOf<T>` and `Contains<T>`
