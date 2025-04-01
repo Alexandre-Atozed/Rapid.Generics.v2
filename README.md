@@ -14,8 +14,9 @@ The original library could not be used in a real application due to several issu
 ## What is different in v2?
 
 ### ✅ Unit Tests
-* 115 new unit tests added for `TDictionary<>`, `TList<>`, `TQueue<>`, and `TStack<>` classes  
-* New tests added to the performance test application  
+* 115 new unit tests added for `TDictionary<>`, `TList<>`, `TQueue<>`, and `TStack<>` classes
+* All tests run memory leak free. Tested with FastMM4 in FullDebugMode  
+* New tests added to the performance test (benchmark) application  
 
 ### 🔧 General Changes
 * `{$DEFINE HAS_INLINE}` allows enabling/disabling `inline` for easier debugging
@@ -33,10 +34,10 @@ The original library could not be used in a real application due to several issu
 
 ### 📌 TList<> Improvements
 * Implemented missing method: `ExtractAt()`
-* Fixed `TList<>.InternalDelete` method for managed types
+* Fixed `TList<>.InternalDelete` method for managed types, which fixed memory leaks when adding records with managed types to lists
 * Sorting:
-  * Now exclusively uses **QuickSort**  
-  * Removed `RadixSort` and `Insertion` routines (both failed basic unit tests)
+  * Now exclusively uses **QuickSort** for sorting 
+  * Removed `RadixSort` and `Insertion` routines (both failed basic unit tests). Plans to revisit this topic in the near future
   * Fixed `SortDescending()` methods
 
 ## 📌 Compatibility
@@ -47,7 +48,7 @@ This has been tested with:
 
 ## 📌 Dependencies
 * No external dependencies
-* Unit test project requires DUnitX framework [DUnixX](https://github.com/VSoftTechnologies/DUnitX/tree/master)
+* Unit test project requires [DUnitX](https://github.com/VSoftTechnologies/DUnitX/tree/master) framework
 
 ## 📌 How to Use
 1. Include `Rapid.Generics.pas` in your project.  
