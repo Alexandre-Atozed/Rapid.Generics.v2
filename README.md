@@ -41,9 +41,13 @@ The original library could not be used in a real application due to several issu
 
 ## 📌 Compatibility
 This has been tested with:
-* Delphi 10.3, 10.4, 11, 12
+* Delphi 10.0, 10.1, 10.2, 10.3, 10.4, 11, 12
 * Not tested with any version of Lazarus/FPC yet
 * Other compiler versions will be tested in the near future
+
+## 📌 Dependencies
+* No external dependencies
+* Unit test project requires DUnitX framework [DUnixX](https://github.com/VSoftTechnologies/DUnitX/tree/master)
 
 ## 📌 How to Use
 1. Include `Rapid.Generics.pas` in your project.  
