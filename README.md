@@ -39,6 +39,12 @@ The original library could not be used in a real application due to several issu
   * Removed `RadixSort` and `Insertion` routines (both failed basic unit tests)
   * Fixed `SortDescending()` methods
 
+## 📌 Compatibility
+This has been tested with:
+* Delphi 10.3, 10.4, 11, 12
+* Not tested with any version of Lazarus/FPC yet
+* Other compiler versions will be tested in the near future
+
 ## 📌 How to Use
 1. Include `Rapid.Generics.pas` in your project.  
 2. Replace `Generics.Collections` and `Generics.Defaults` with `Rapid.Generics` in your `uses` sections.  
