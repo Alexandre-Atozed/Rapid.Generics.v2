@@ -15,6 +15,7 @@ uses
   DUnitX.TestFramework;
 
 type
+  [TestFixture]
   TDictionaryISTest = class
   private
     FDictionary: TDictionary<Integer, string>;
