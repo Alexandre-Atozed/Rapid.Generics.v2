@@ -992,7 +992,7 @@ type
   TComparer<T> = class(TCustomObject, IComparer<T>)
   public
     class function Default: IComparer<T>;
-    class function Construct(const Comparison: TComparison<T>): IComparer<T>;
+    class function Construct(const Comparison: TComparison<T>): IComparer<T>; static; {$IFDEF HAS_INLINE}inline;{$ENDIF}
     function Compare(const Left, Right: T): Integer; virtual; abstract;
   end;
 
@@ -10101,7 +10101,8 @@ class function TComparer<T>.Construct(const Comparison: TComparison<T>): ICompar
 begin
   { Much faster way to have IComparer<T> interface, than
     TDelegatedComparer<T> instance }
-  IInterface(Result) := IInterface(PPointer(@Comparison)^);
+  //IInterface(Result) := IInterface(PPointer(@Comparison)^);
+  Result := IComparer<T>(PPointer(@Comparison)^);
 end;
 
 { TEqualityComparer<T> }
@@ -12722,7 +12723,6 @@ swap_loop:
 
     if (I <= J) then
     begin
-      System.YieldProcessor;
       // TArray.Exchange<T>(I, J);
       case SizeOf(T) of
         0: ;
