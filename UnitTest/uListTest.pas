@@ -222,6 +222,52 @@ type
     [Test]
     procedure TestDeleteRange;
   end;
+
+  TTestRecord2 = record
+    x: Integer;
+    y: array[0..4] of Integer;  // Static array of integers
+  end;
+
+  TTestRecord2Comparer = class(TInterfacedObject, IComparer<TTestRecord2>)
+  public
+    function Compare(const Left, Right: TTestRecord2): Integer;
+  end;
+
+  TListTestRecord2 = class
+  private
+    FList: TList<TTestRecord2>;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+    [Test]
+    procedure TestRemove;
+    [Test]
+    procedure TestDelete;
+    [Test]
+    procedure TestClear;
+    [Test]
+    procedure TestInsert;
+    [Test]
+    procedure TestContains;
+    [Test]
+    procedure TestCount;
+    [Test]
+    procedure TestMany;
+    [Test]
+    procedure TestHuge;
+    [Test]
+    procedure TestBinarySearch;
+    [Test]
+    procedure TestPack;
+    [Test]
+    procedure TestAddRange;
+    [Test]
+    procedure TestDeleteRange;
+  end;
   {$ENDIF TEST_RECORDLIST}
 
 implementation
@@ -1101,7 +1147,7 @@ function TTestRecordComparer.Compare(const Left, Right: TTestRecord): Integer;
 begin
   Result := Left.x - Right.x;
   if Result = 0 then
-    Result := CompareText(Left.y, Left.y);
+    Result := CompareText(Left.y, Right.y);
 end;
 
 { TListTestRecord }
@@ -1363,6 +1409,300 @@ begin
   Assert.AreEqual(8, FList[3].x);
   Assert.AreEqual('Item8', FList[3].y);
 end;
+
+{ TTestRecord2Comparer }
+
+function TTestRecord2Comparer.Compare(const Left, Right: TTestRecord2): Integer;
+var
+  i: Integer;
+begin
+  Result := Left.x - Right.x;
+  if Result <> 0 then
+    Exit;
+
+  if CompareMem(@Left.y, @Right.y, SizeOf(Left.y)) then
+    Exit(0);
+
+  for i := Low(Left.y) to High(Left.y) do
+  begin
+    Result := Left.y[i] - Right.y[i];
+    if Result <> 0 then
+      Exit;
+  end;
+end;
+
+{ TListTestRecord2 }
+
+procedure TListTestRecord2.SetUp;
+var
+  Comparer: IComparer<TTestRecord2>;
+begin
+  Comparer := TTestRecord2Comparer.Create;
+  FList := TList<TTestRecord2>.Create(Comparer);
+end;
+
+procedure TListTestRecord2.TearDown;
+begin
+  FList.Free;
+end;
+
+procedure FillArray(var Arr: array of Integer);
+var
+  i: Integer;
+begin
+  for i := 0 to High(Arr) do
+    Arr[i] := i;
+end;
+
+procedure TListTestRecord2.TestAdd;
+var
+  Rec: TTestRecord2;
+begin
+  Rec.x := 10;
+  FillArray(Rec.y);  // y becomes [0, 1, 2, 3, 4]
+  FList.Add(Rec);
+  Assert.AreEqual(1, Integer(FList.Count));
+  Assert.AreEqual(10, FList[0].x);
+  Assert.AreEqual(0, FList[0].y[0]);
+  Assert.AreEqual(4, FList[0].y[4]);
+end;
+
+procedure TListTestRecord2.TestRemove;
+var
+  Rec1, Rec2: TTestRecord2;
+  idx: Integer;
+begin
+  Rec1.x := 10; FillArray(Rec1.y);
+  Rec2.x := 20; FillArray(Rec2.y);
+  FList.Add(Rec1);
+  FList.Add(Rec2);
+  Assert.AreEqual(2, Integer(FList.Count));
+  idx := FList.Remove(Rec1);
+  Assert.IsTrue(idx >= 0);
+  Assert.AreEqual(1, Integer(FList.Count));
+  Assert.AreEqual(20, FList[0].x);
+  Assert.AreEqual(0, FList[0].y[0]);
+  Assert.AreEqual(4, FList[0].y[4]);
+end;
+
+procedure TListTestRecord2.TestDelete;
+var
+  Rec1, Rec2, Rec3: TTestRecord2;
+begin
+  Rec1.x := 10; FillArray(Rec1.y);
+  Rec2.x := 20; FillArray(Rec2.y);
+  Rec3.x := 30; FillArray(Rec3.y);
+  FList.Add(Rec1);
+  FList.Add(Rec2);
+  FList.Add(Rec3);
+  Assert.AreEqual(3, Integer(FList.Count));
+  FList.Delete(0);
+  Assert.AreEqual(2, Integer(FList.Count));
+  Assert.AreEqual(20, FList[0].x);
+  Assert.AreEqual(0, FList[0].y[0]);
+  FList.Delete(1);
+  Assert.AreEqual(1, Integer(FList.Count));
+  Assert.AreEqual(20, FList[0].x);
+  Assert.AreEqual(0, FList[0].y[0]);
+  FList.Delete(0);
+  Assert.AreEqual(0, Integer(FList.Count));
+end;
+
+procedure TListTestRecord2.TestClear;
+var
+  Rec: TTestRecord2;
+begin
+  Rec.x := 1; FillArray(Rec.y); FList.Add(Rec);
+  Rec.x := 2; FillArray(Rec.y); FList.Add(Rec);
+  Rec.x := 3; FillArray(Rec.y); FList.Add(Rec);
+  FList.Clear;
+  Assert.AreEqual(0, Integer(FList.Count));
+end;
+
+procedure TListTestRecord2.TestInsert;
+var
+  Rec1, Rec2: TTestRecord2;
+begin
+  Rec1.x := 10; FillArray(Rec1.y);
+  Rec2.x := 5;  FillArray(Rec2.y);
+  FList.Add(Rec1);
+  FList.Insert(0, Rec2);
+  Assert.AreEqual(2, Integer(FList.Count));
+  Assert.AreEqual(5, FList[0].x);
+  Assert.AreEqual(0, FList[0].y[0]);
+  Assert.AreEqual(10, FList[1].x);
+  Assert.AreEqual(0, FList[1].y[0]);
+end;
+
+procedure TListTestRecord2.TestContains;
+var
+  Rec: TTestRecord2;
+begin
+  Rec.x := 42; FillArray(Rec.y);
+  FList.Add(Rec);
+  Assert.IsTrue(FList.Contains(Rec));
+  Rec.x := 99; FillArray(Rec.y);
+  Assert.IsFalse(FList.Contains(Rec));
+end;
+
+procedure TListTestRecord2.TestCount;
+var
+  Rec: TTestRecord2;
+begin
+  Assert.AreEqual(0, Integer(FList.Count));
+  Rec.x := 100; FillArray(Rec.y);
+  FList.Add(Rec);
+  Assert.AreEqual(1, Integer(FList.Count));
+  Rec.x := 200; FillArray(Rec.y);
+  FList.Add(Rec);
+  Assert.AreEqual(2, Integer(FList.Count));
+end;
+
+procedure TListTestRecord2.TestMany;
+var
+  i: Integer;
+  Rec: TTestRecord2;
+begin
+  for i := 1 to MANY_ITEMS_COUNT do
+  begin
+    Rec.x := i;
+    FillArray(Rec.y);
+    FList.Add(Rec);
+  end;
+
+  Assert.AreEqual(MANY_ITEMS_COUNT, Integer(FList.Count));
+
+  Rec.x := MANY_ITEMS_COUNT; FillArray(Rec.y);
+  Assert.IsTrue(FList.Contains(Rec));
+
+  for i := MANY_ITEMS_COUNT downto 1 do
+  begin
+    Rec.x := i;
+    FillArray(Rec.y);
+    FList.Remove(Rec);
+  end;
+
+  Assert.AreEqual(0, Integer(FList.Count));
+
+  Assert.IsFalse(FList.Contains(Rec));
+
+  for i := 1 to MANY_ITEMS_COUNT do
+  begin
+    Rec.x := i;
+    FillArray(Rec.y);
+    FList.Add(Rec);
+  end;
+
+  Assert.AreEqual(MANY_ITEMS_COUNT, Integer(FList.Count));
+
+  for i := 1 to MANY_ITEMS_COUNT do
+  begin
+    Rec.x := i;
+    FillArray(Rec.y);
+    FList.Remove(Rec);
+  end;
+
+  Assert.AreEqual(0, Integer(FList.Count));
+end;
+
+procedure TListTestRecord2.TestHuge;
+var
+  i: Integer;
+  Rec: TTestRecord2;
+begin
+  for i := HUGE_ITEMS_COUNT downto 1 do
+  begin
+    Rec.x := i;
+    FillArray(Rec.y);
+    FList.Add(Rec);
+  end;
+
+  Assert.AreEqual(HUGE_ITEMS_COUNT, Integer(FList.Count));
+
+  Rec.x := MaxInt; FillArray(Rec.y);
+  FList.Insert(HUGE_ITEMS_COUNT div 2, Rec);
+  Assert.AreEqual(HUGE_ITEMS_COUNT + 1, Integer(FList.Count));
+  Assert.AreEqual(MaxInt, FList[HUGE_ITEMS_COUNT div 2].x);
+  Assert.AreEqual(0, FList[HUGE_ITEMS_COUNT div 2].y[0]);
+
+  for i := 1 to MANY_ITEMS_COUNT do
+    FList.Delete(0);
+
+  Assert.AreEqual(HUGE_ITEMS_COUNT - MANY_ITEMS_COUNT + 1, Integer(FList.Count));
+
+  FList.Sort;
+  Assert.AreEqual(1, FList[0].x);
+end;
+
+procedure TListTestRecord2.TestBinarySearch;
+var
+  Index: Integer;
+  Rec1, Rec2, Rec3, Rec4, Rec5, SearchRec: TTestRecord2;
+begin
+  Rec1.x := 1; FillArray(Rec1.y);
+  Rec2.x := 3; FillArray(Rec2.y);
+  Rec3.x := 5; FillArray(Rec3.y);
+  Rec4.x := 7; FillArray(Rec4.y);
+  Rec5.x := 9; FillArray(Rec5.y);
+  FList.AddRange([Rec1, Rec2, Rec3, Rec4, Rec5]);
+  FList.Sort;
+
+  SearchRec.x := 5; FillArray(SearchRec.y);
+  Assert.IsTrue(FList.BinarySearch(SearchRec, Index));
+  Assert.AreEqual(2, Index);
+
+  SearchRec.x := 4; FillArray(SearchRec.y);
+  Assert.IsFalse(FList.BinarySearch(SearchRec, Index));
+end;
+
+procedure TListTestRecord2.TestPack;
+var
+  Rec1, Rec2, Rec3, ZeroRec: TTestRecord2;
+begin
+  Rec1.x := 1; FillArray(Rec1.y);
+  Rec2.x := 2; FillArray(Rec2.y);
+  Rec3.x := 3; FillArray(Rec3.y);
+  ZeroRec := default(TTestRecord2);
+  FList.AddRange([Rec1, ZeroRec, Rec2, ZeroRec, Rec3]);
+  FList.Pack;
+  Assert.AreEqual(3, Integer(FList.Count));
+  Assert.IsTrue(FList.Contains(Rec1) and FList.Contains(Rec2) and FList.Contains(Rec3));
+end;
+
+procedure TListTestRecord2.TestAddRange;
+var
+  Rec1, Rec2, Rec3: TTestRecord2;
+begin
+  Rec1.x := 4; FillArray(Rec1.y);
+  Rec2.x := 5; FillArray(Rec2.y);
+  Rec3.x := 6; FillArray(Rec3.y);
+  FList.AddRange([Rec1, Rec2, Rec3]);
+  Assert.AreEqual(3, Integer(FList.Count));
+  Assert.AreEqual(4, FList[0].x);
+  Assert.AreEqual(0, FList[0].y[0]);
+  Assert.AreEqual(5, FList[1].x);
+  Assert.AreEqual(0, FList[1].y[0]);
+end;
+
+procedure TListTestRecord2.TestDeleteRange;
+var
+  Rec: TTestRecord2;
+  i: Integer;
+begin
+  for i := 1 to 10 do
+  begin
+    Rec.x := i;
+    FillArray(Rec.y);
+    FList.Add(Rec);
+  end;
+  FList.DeleteRange(3, 4);
+  Assert.AreEqual(6, Integer(FList.Count));
+  Assert.AreEqual(1, FList[0].x);
+  Assert.AreEqual(0, FList[0].y[0]);
+  Assert.AreEqual(8, FList[3].x);
+  Assert.AreEqual(0, FList[3].y[0]);
+end;
+
 {$ENDIF TEST_RECORDLIST}
 
 {$EndRegion 'TList<TTestRecord> Tests'}
@@ -1374,5 +1714,6 @@ initialization
   TDUnitX.RegisterTestFixture(TListTestString);
   TDUnitX.RegisterTestFixture(TListTestPointer);
   TDUnitX.RegisterTestFixture(TListTestRecord);
+  TDUnitX.RegisterTestFixture(TListTestRecord2);
 
 end.

@@ -1289,6 +1289,7 @@ type
     class procedure WeakReverse<T>(const Values: Pointer; const Count: NativeInt); static;
     {$endif}
     class procedure CheckArrays(Source, Destination: Pointer; SourceIndex, SourceLength, DestIndex, DestLength, Count: NativeInt); static;
+    class function MedianOfThree<T>(var A, B, C: T; Comparer: IComparer<T>): T; static; {$IFDEF HAS_INLINE}inline;{$ENDIF}
     class function SortItemPivot<T>(const I, J: Pointer): Pointer; static; {$IFDEF HAS_INLINE}inline;{$ENDIF}
     class function SortItemNext<T>(const StackItem, I, J: Pointer): Pointer; static; {$IFDEF HAS_INLINE}inline;{$ENDIF}
     class function SortItemCount<T>(const I, J: Pointer): NativeInt; static; {$IFDEF HAS_INLINE}inline;{$ENDIF}
@@ -1304,11 +1305,11 @@ type
     class procedure SortDescendingBinaries<T>(const Values: Pointer; const Count: NativeInt; var PivotBig: T); static;
 
     {$ifdef WEAKREF}
-    class procedure WeakSortUniversals<T>(const Values: Pointer; const Count: NativeInt; var Helper: TSortHelper<T>); static;
-    class procedure WeakSortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var Helper: TSortHelper<T>); static;
+    class procedure WeakSortUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>); static;
+    class procedure WeakSortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>); static;
     {$endif}
-    class procedure SortUniversals<T>(const Values: Pointer; const Count: NativeInt; var Helper: TSortHelper<T>); static;
-    class procedure SortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var Helper: TSortHelper<T>); static;
+    class procedure SortUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>); static;
+    class procedure SortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>); static;
 
     class function SearchSigneds<T>(Values: Pointer; Count: NativeInt; Item: Pointer): NativeInt; static;
     class function SearchUnsigneds<T>(Values: Pointer; Count: NativeInt; Item: Pointer): NativeInt; static;
@@ -11020,6 +11021,7 @@ begin
   end;
 end;
 
+// AM TODO: Use a median of three in order to obtain the pivot
 class function TArray.SortItemPivot<T>(const I, J: Pointer): Pointer;
 var
   Index: NativeInt;
@@ -11046,6 +11048,22 @@ begin
   end;
 
   Result := TRAIIHelper<T>.P(I) + Index;
+end;
+
+class function TArray.MedianOfThree<T>(var A, B, C: T; Comparer: IComparer<T>): T;
+begin
+  if Comparer.Compare(A, B) < 0 then
+  begin
+    if Comparer.Compare(B, C) < 0 then Exit(B) // A < B < C
+    else if Comparer.Compare(A, C) < 0 then Exit(C) // A < C < B
+    else Exit(A);
+  end
+  else
+  begin
+    if Comparer.Compare(A, C) < 0 then Exit(A) // B < A < C
+    else if Comparer.Compare(B, C) < 0 then Exit(C) // B < C < A
+    else Exit(B);
+  end;
 end;
 
 class function TArray.SortItemNext<T>(const StackItem, I, J: Pointer): Pointer;
@@ -11250,6 +11268,7 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;    // do not let it go beyond the end of the stack
       Inc(I);
       case SizeOf(T) of
         1: if (Pivot4 <= PS1(I)^) then Break;
@@ -11267,6 +11286,7 @@ swap_loop:
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;   // do not let it go beyond the begin of the stack
       Dec(J);
       case SizeOf(T) of
         1: if (PS1(J)^ <= Pivot4) then Break;
@@ -11371,6 +11391,7 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;    // do not let it go beyond the end of the stack
       Inc(I);
       case SizeOf(T) of
         1: if (Pivot4 >= PS1(I)^) then Break;
@@ -11388,6 +11409,7 @@ swap_loop:
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;    // do not let it go beyond the end of the stack
       Dec(J);
       case SizeOf(T) of
         1: if (PS1(J)^ >= Pivot4) then Break;
@@ -11492,6 +11514,7 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;    // do not let it go beyond the end of the stack
       Inc(I);
       case SizeOf(T) of
         1: if (Pivot4 <= PU1(I)^) then Break;
@@ -11509,6 +11532,7 @@ swap_loop:
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;    // do not let it go beyond the begin of the stack
       Dec(J);
       case SizeOf(T) of
         1: if (PU1(J)^ <= Pivot4) then Break;
@@ -11613,6 +11637,7 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;    // do not let it go beyond the end of the stack
       Inc(I);
       case SizeOf(T) of
         1: if (Pivot4 >= PU1(I)^) then Break;
@@ -11630,6 +11655,7 @@ swap_loop:
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;    // do not let it go beyond the begin of the stack
       Dec(J);
       case SizeOf(T) of
         1: if (PU1(J)^ >= Pivot4) then Break;
@@ -11720,6 +11746,7 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;    // do not let it go beyond the end of the stack
       Inc(I);
       case SizeOf(T) of
         4: if (Pivot4 <= PF4(I)^) then Break;
@@ -11730,6 +11757,7 @@ swap_loop:
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;    // do not let it go beyond the begin of the stack
       Dec(J);
       case SizeOf(T) of
         4: if (PF4(J)^ <= Pivot4) then Break;
@@ -11822,6 +11850,7 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;    // do not let it go beyond the end of the stack
       Inc(I);
       case SizeOf(T) of
         4: if (Pivot4 >= PF4(I)^) then Break;
@@ -11832,6 +11861,7 @@ swap_loop:
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;    // do not let it go beyond the begin of the stack
       Dec(J);
       case SizeOf(T) of
         4: if (PF4(J)^ >= Pivot4) then Break;
@@ -11936,6 +11966,7 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;   // do not let it go beyond the end of the stack
       Inc(I);
 
       Y := TArray.SortBinaryMarker<T>(I);
@@ -11986,6 +12017,7 @@ swap_loop:
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;   // do not let it go beyond the begin of the stack
       Dec(J);
 
       Y := TArray.SortBinaryMarker<T>(J);
@@ -12283,6 +12315,7 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;    // do not let it go beyond the end of the stack
       Inc(I);
 
       Y := TArray.SortBinaryMarker<T>(I);
@@ -12333,6 +12366,7 @@ swap_loop:
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;   // do not let it go beyond the begin of the stack
       Dec(J);
 
       Y := TArray.SortBinaryMarker<T>(J);
@@ -12579,7 +12613,7 @@ swap_loop:
 end;
 
 {$ifdef WEAKREF}
-class procedure TArray.WeakSortUniversals<T>(const Values: Pointer; const Count: NativeInt; var Helper: TSortHelper<T>);
+class procedure TArray.WeakSortUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>);
 label
   proc_loop, proc_loop_current, swap_loop;
 var
@@ -12598,7 +12632,7 @@ proc_loop_current:
   J := StackItem^.Last;
 
   // pivot
-  System.Move(SortItemPivot<T>(I, J)^, Helper.Pivot, SizeOf(T));
+  System.Move(SortItemPivot<T>(I, J)^, aHelper.Pivot, SizeOf(T));
 
   // quick sort
   Dec(J);
@@ -12608,20 +12642,22 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;    // do not let it go beyond the end of the stack
       Inc(I);
-      if (Helper.Compare(Helper.Inst, Helper.Pivot, I^) <= 0) then Break;
+      if (aHelper.Compare(aHelper.Inst, aHelper.Pivot, I^) <= 0) then Break;
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;   // do not let it go beyond the begin of the stack
       Dec(J);
-      if (Helper.Compare(Helper.Inst, J^, Helper.Pivot) <= 0) then Break;
+      if (aHelper.Compare(aHelper.Inst, J^, aHelper.Pivot) <= 0) then Break;
     until (False);
 
     if (I <= J) then
     begin
-      Helper.Temp := I^;
+      aHelper.Temp := I^;
       I^ := J^;
-      J^ := Helper.Temp;
+      J^ := aHelper.Temp;
 
       Dec(J, 2);
       if (I <= J) then goto swap_loop;
@@ -12638,7 +12674,7 @@ swap_loop:
 end;
 {$endif}
 
-class procedure TArray.SortUniversals<T>(const Values: Pointer; const Count: NativeInt; var Helper: TSortHelper<T>);
+class procedure TArray.SortUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>);
 label
   proc_loop, proc_loop_current, swap_loop;
 var
@@ -12663,7 +12699,7 @@ proc_loop_current:
   J := StackItem^.Last;
 
   // pivot
-  TArray.Copy<T>(@Helper.Pivot, SortItemPivot<T>(I, J));
+  TArray.Copy<T>(@aHelper.Pivot, SortItemPivot<T>(I, J));
 
   // quick sort
   Dec(J);
@@ -12673,17 +12709,20 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;    // do not let it go beyond the end of the stack
       Inc(I);
-      if (Helper.Compare(Helper.Inst, Helper.Pivot, I^) <= 0) then Break;
+      if (aHelper.Compare(aHelper.Inst, aHelper.Pivot, I^) <= 0) then Break;
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;   // do not let it go beyond the begin of the stack
       Dec(J);
-      if (Helper.Compare(Helper.Inst, J^, Helper.Pivot) <= 0) then Break;
+      if (aHelper.Compare(aHelper.Inst, J^, aHelper.Pivot) <= 0) then Break;
     until (False);
 
     if (I <= J) then
     begin
+      System.YieldProcessor;
       // TArray.Exchange<T>(I, J);
       case SizeOf(T) of
         0: ;
@@ -12879,7 +12918,7 @@ swap_loop:
 end;
 
 {$ifdef WEAKREF}
-class procedure TArray.WeakSortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var Helper: TSortHelper<T>);
+class procedure TArray.WeakSortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>);
 label
   proc_loop, proc_loop_current, swap_loop;
 var
@@ -12898,7 +12937,7 @@ proc_loop_current:
   J := StackItem^.Last;
 
   // pivot
-  System.Move(SortItemPivot<T>(I, J)^, Helper.Pivot, SizeOf(T));
+  System.Move(SortItemPivot<T>(I, J)^, aHelper.Pivot, SizeOf(T));
 
   // quick sort
   Dec(J);
@@ -12908,20 +12947,22 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;   // do not let it go beyond the end of the stack
       Inc(I);
-      if (Helper.Compare(Helper.Inst, Helper.Pivot, I^) >= 0) then Break;
+      if (aHelper.Compare(aHelper.Inst, aHelper.Pivot, I^) >= 0) then Break;
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;   // do not let it go beyond the begin of the stack
       Dec(J);
-      if (Helper.Compare(Helper.Inst, J^, Helper.Pivot) >= 0) then Break;
+      if (aHelper.Compare(aHelper.Inst, J^, aHelper.Pivot) >= 0) then Break;
     until (False);
 
     if (I <= J) then
     begin
-      Helper.Temp := I^;
+      aHelper.Temp := I^;
       I^ := J^;
-      J^ := Helper.Temp;
+      J^ := aHelper.Temp;
 
       Dec(J, 2);
       if (I <= J) then goto swap_loop;
@@ -12938,7 +12979,7 @@ swap_loop:
 end;
 {$endif}
 
-class procedure TArray.SortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var Helper: TSortHelper<T>);
+class procedure TArray.SortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>);
 label
   proc_loop, proc_loop_current, swap_loop;
 var
@@ -12963,7 +13004,7 @@ proc_loop_current:
   J := StackItem^.Last;
 
   // pivot
-  TArray.Copy<T>(@Helper.Pivot, SortItemPivot<T>(I, J));
+  TArray.Copy<T>(@aHelper.Pivot, SortItemPivot<T>(I, J));
 
   // quick sort
   Dec(J);
@@ -12973,13 +13014,15 @@ swap_loop:
     Inc(J, 2);
 
     repeat
+      if I = StackItem^.Last then Break;   // do not let it go beyond the end of the stack
       Inc(I);
-      if (Helper.Compare(Helper.Inst, Helper.Pivot, I^) >= 0) then Break;
+      if (aHelper.Compare(aHelper.Inst, aHelper.Pivot, I^) >= 0) then Break;
     until (False);
 
     repeat
+      if J = StackItem^.First then Break;   // do not let it go beyond the begin of the stack
       Dec(J);
-      if (Helper.Compare(Helper.Inst, J^, Helper.Pivot) >= 0) then Break;
+      if (aHelper.Compare(aHelper.Inst, J^, aHelper.Pivot) >= 0) then Break;
     until (False);
 
     if (I <= J) then
@@ -13314,64 +13357,64 @@ end;
 class procedure TArray.Sort<T>(var Values: T; const Count: Integer; const Comparer: IComparer<T>);
 var
   HelperBuffer: array[0..BUFFER_SIZE - 1] of Byte;
-  Helper: ^TSortHelper<T>;
+  LHelper: ^TSortHelper<T>;
 begin
   if (Count <= 1) then Exit;
 
-  Helper := Pointer(@HelperBuffer);
-  if (SizeOf(TSortHelper<T>) > SizeOf(HelperBuffer)) then GetMem(Helper, SizeOf(TSortHelper<T>));
+  LHelper := Pointer(@HelperBuffer);
+  if (SizeOf(TSortHelper<T>) > SizeOf(HelperBuffer)) then GetMem(LHelper, SizeOf(TSortHelper<T>));
   try
-    Helper^.Init(Comparer);
+    LHelper^.Init(Comparer);
 
     {$ifdef WEAKREF}
     if (TRAIIHelper<T>.Weak) then
     begin
-      System.Initialize(Helper.Temp);
+      System.Initialize(LHelper.Temp);
       try
-        TArray.WeakSortUniversals<T>(@Values, Count, Helper^);
+        TArray.WeakSortUniversals<T>(@Values, Count, LHelper^);
       finally
-        System.Finalize(Helper.Temp);
+        System.Finalize(LHelper.Temp);
       end;
     end else
     {$endif}
     begin
-      TArray.SortUniversals<T>(@Values, Count, Helper^);
+      TArray.SortUniversals<T>(@Values, Count, LHelper^);
     end;
   finally
-    if (Helper <> Pointer(@HelperBuffer)) then
-      FreeMem(Helper);
+    if (LHelper <> Pointer(@HelperBuffer)) then
+      FreeMem(LHelper);
   end;
 end;
 
 class procedure TArray.Sort<T>(var Values: T; const Count: Integer; const Comparison: TComparison<T>);
 var
   HelperBuffer: array[0..BUFFER_SIZE - 1] of Byte;
-  Helper: ^TSortHelper<T>;
+  LHelper: ^TSortHelper<T>;
 begin
   if (Count <= 1) then Exit;
 
-  Helper := Pointer(@HelperBuffer);
-  if (SizeOf(TSortHelper<T>) > SizeOf(HelperBuffer)) then GetMem(Helper, SizeOf(TSortHelper<T>));
+  LHelper := Pointer(@HelperBuffer);
+  if (SizeOf(TSortHelper<T>) > SizeOf(HelperBuffer)) then GetMem(LHelper, SizeOf(TSortHelper<T>));
   try
-    Helper^.Init(Comparison);
+    LHelper^.Init(Comparison);
 
     {$ifdef WEAKREF}
     if (TRAIIHelper<T>.Weak) then
     begin
-      System.Initialize(Helper.Temp);
+      System.Initialize(LHelper.Temp);
       try
-        TArray.WeakSortUniversals<T>(@Values, Count, Helper^);
+        TArray.WeakSortUniversals<T>(@Values, Count, LHelper^);
       finally
-        System.Finalize(Helper.Temp);
+        System.Finalize(LHelper.Temp);
       end;
     end else
     {$endif}
     begin
-      TArray.SortUniversals<T>(@Values, Count, Helper^);
+      TArray.SortUniversals<T>(@Values, Count, LHelper^);
     end;
   finally
-    if (Helper <> Pointer(@HelperBuffer)) then
-      FreeMem(Helper);
+    if (LHelper <> Pointer(@HelperBuffer)) then
+      FreeMem(LHelper);
   end;
 end;
 

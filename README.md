@@ -14,7 +14,7 @@ The original library could not be used in a real application due to several issu
 ## What is different in v2?
 
 ### ✅ Unit Tests
-* 115 new unit tests added for `TDictionary<>`, `TList<>`, `TQueue<>`, and `TStack<>` classes
+* 123 new unit tests added for `TDictionary<>`, `TList<>`, `TQueue<>`, and `TStack<>` classes
 * All tests run memory leak free. Tested with FastMM4 in FullDebugMode  
 * New tests added to the performance test (benchmark) application  
 
@@ -36,13 +36,14 @@ The original library could not be used in a real application due to several issu
 * Implemented missing method: `ExtractAt()`
 * Fixed `TList<>.InternalDelete` method for managed types, which fixed memory leaks when adding records with managed types to lists
 * Sorting:
-  * Now exclusively uses **QuickSort** for sorting 
+  * Now exclusively uses **QuickSort** for sorting
+  * QuickSort corner cases fixed, preventing infinite loops due to improper index bounds during pivot selection
   * Removed `RadixSort` and `Insertion` routines (both failed basic unit tests). Plans to revisit this topic in the near future
   * Fixed `SortDescending()` methods
 
 ## 📌 Compatibility
 This has been tested with:
-* Delphi 10, 10.1, 10.2, 10.3, 10.4, 11, 12
+* Delphi 10, 10.1, 10.2, 10.3, 10.4, 11, 12 (x86 and x64)
 * Not tested with any version of Lazarus/FPC yet
 * Other compiler versions will be tested in the near future
 
