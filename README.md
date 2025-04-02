@@ -15,7 +15,8 @@ The original library could not be used in a real application due to several issu
 
 ### ✅ Unit Tests
 * 123 new unit tests added for `TDictionary<>`, `TList<>`, `TQueue<>`, and `TStack<>` classes
-* All tests run memory leak free. Tested with FastMM4 in FullDebugMode  
+* All tests run memory leak free. Tested with FastMM4 in FullDebugMode
+* All tests can also use standard System.Generics.Collections data structures, just disabling a directive (just undefine TEST_RAPIDGENERICS), making it easy to compare unexpected behavior  
 * New tests added to the performance test (benchmark) application  
 
 ### 🔧 General Changes
