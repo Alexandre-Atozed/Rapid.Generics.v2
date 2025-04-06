@@ -22229,8 +22229,8 @@ end;
 
 constructor TObjectList<T>.Create(AOwnsObjects: Boolean);
 begin
-  inherited Create;
   FOwnsObjects := AOwnsObjects;
+  inherited Create;
 end;
 
 constructor TObjectList<T>.Create(const AComparer: IComparer<T>; AOwnsObjects: Boolean);

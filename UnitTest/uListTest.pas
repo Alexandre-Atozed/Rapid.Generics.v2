@@ -7,6 +7,7 @@ interface
 {$DEFINE TEST_STRINGLIST}
 {$DEFINE TEST_POINTERLIST}
 {$DEFINE TEST_RECORDLIST}
+{$DEFINE TEST_OBJECTLIST}
 
 {$DEFINE TEST_RAPIDGENERICS}
 
@@ -382,6 +383,42 @@ type
 
   {$ENDIF TEST_RECORDLIST}
 
+  {$IFDEF TEST_OBJECTLIST}
+
+  TMyObject = class
+  public
+    ID: Integer;
+    constructor Create(AID: Integer);
+    destructor Destroy; override;
+  end;
+
+  [TestFixture]
+  TObjectListTestObject = class
+  private
+    FList: TObjectList<TMyObject>;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+    [Test]
+    procedure TestRemove;
+    [Test]
+    procedure TestDelete;
+    [Test]
+    procedure TestClear;
+    [Test]
+    procedure TestInsert;
+    [Test]
+    procedure TestContains;
+    [Test]
+    procedure TestCount;
+  end;
+
+  {$ENDIF TEST_OBJECTLIST}
+
 implementation
 
 uses
@@ -401,6 +438,114 @@ begin
   for I in NilIndex do
     Result[I] := Default(T);
 end;
+
+{$Region 'TObjectList<TMyObject> Tests'}
+
+{$IFDEF TEST_OBJECTLIST}
+
+constructor TMyObject.Create(AID: Integer);
+begin
+  inherited Create;
+  ID := AID;
+  OutputDebugString(PChar('Creating object ID: ' + IntToStr(ID)));
+end;
+
+destructor TMyObject.Destroy;
+begin
+  OutputDebugString(PChar('Destorying object ID: ' + IntToStr(ID)));
+  inherited;
+end;
+
+procedure TObjectListTestObject.Setup;
+begin
+  FList := TObjectList<TMyObject>.Create(True); // OwnsObjects = True
+end;
+
+procedure TObjectListTestObject.TearDown;
+begin
+  FreeAndNil(FList);
+end;
+
+procedure TObjectListTestObject.TestAdd;
+begin
+  FList.Add(TMyObject.Create(10));
+  Assert.AreEqual(1, FList.Count);
+  Assert.AreEqual(10, FList[0].ID);
+end;
+
+procedure TObjectListTestObject.TestRemove;
+var
+  Obj10, Obj20: TMyObject;
+begin
+  Obj10 := TMyObject.Create(10);
+  Obj20 := TMyObject.Create(20);
+  FList.Add(Obj10);
+  FList.Add(Obj20);
+  Assert.AreEqual(2, FList.Count);
+  Assert.IsTrue(FList.Remove(Obj10) >= 0);
+  Assert.AreEqual(1, FList.Count);
+  Assert.AreEqual(20, FList[0].ID);
+end;
+
+procedure TObjectListTestObject.TestDelete;
+begin
+  FList.Add(TMyObject.Create(10));
+  FList.Add(TMyObject.Create(20));
+  FList.Add(TMyObject.Create(30));
+  Assert.AreEqual(3, FList.Count);
+  FList.Delete(0);
+  Assert.AreEqual(2, FList.Count);
+  Assert.AreEqual(20, FList[0].ID);
+  FList.Delete(1);
+  Assert.AreEqual(1, FList.Count);
+  Assert.AreEqual(20, FList[0].ID);
+  FList.Delete(0);
+  Assert.AreEqual(0, FList.Count);
+end;
+
+procedure TObjectListTestObject.TestClear;
+begin
+  FList.Add(TMyObject.Create(1));
+  FList.Add(TMyObject.Create(2));
+  FList.Add(TMyObject.Create(3));
+  FList.Clear;
+  Assert.AreEqual(0, FList.Count);
+end;
+
+procedure TObjectListTestObject.TestInsert;
+begin
+  FList.Add(TMyObject.Create(10));
+  FList.Insert(0, TMyObject.Create(5));
+  Assert.AreEqual(2, FList.Count);
+  Assert.AreEqual(5, FList[0].ID);
+  Assert.AreEqual(10, FList[1].ID);
+end;
+
+procedure TObjectListTestObject.TestContains;
+var
+  Obj: TMyObject;
+  TestObj: TMyObject;
+begin
+  Obj := TMyObject.Create(42);
+  FList.Add(Obj);
+  Assert.IsTrue(FList.Contains(Obj));
+  TestObj := TMyObject.Create(99);
+  Assert.IsFalse(FList.Contains(TestObj)); // not added
+  TestObj.Free;
+end;
+
+procedure TObjectListTestObject.TestCount;
+begin
+  Assert.AreEqual(0, FList.Count);
+  FList.Add(TMyObject.Create(100));
+  Assert.AreEqual(1, FList.Count);
+  FList.Add(TMyObject.Create(200));
+  Assert.AreEqual(2, FList.Count);
+end;
+
+{$ENDIF TEST_OBJECTLIST}
+
+{$EndRegion 'TObjectList<TMyObject> Tests'}
 
 {$Region 'TList<Integer> Tests'}
 {$IFDEF TEST_INTLIST}
@@ -2259,7 +2404,6 @@ end;
 procedure TListTestRecordComplex.TestPack;
 var
   Rec1, Rec2, Rec3, ZeroRec: TComplexRecord;
-  I: Integer;
 begin
   // Create records with some nil pointers to test packing
   Rec1 := CreateComplexRecord(1, 'Test1');
@@ -2339,5 +2483,6 @@ initialization
   TDUnitX.RegisterTestFixture(TListTestRecordStaticArray);
   TDUnitX.RegisterTestFixture(TListTestRecordDynamicArray);
   TDUnitX.RegisterTestFixture(TListTestRecordComplex);
+  TDUnitX.RegisterTestFixture(TObjectListTestObject);
 
 end.
