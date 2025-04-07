@@ -2239,8 +2239,8 @@ begin
     Assert.AreEqual(I + 1, FList[0].FixedArray[I]);
 
   // Test dynamic array
-  Assert.AreEqual(3, Length(FList[0].DynArray));
-  Assert.AreEqual(5, FList[0].DynArray[0]);
+  Assert.AreEqual(3, Integer(Length(FList[0].DynArray)));
+  Assert.AreEqual(5, Integer(FList[0].DynArray[0]));
 
   // Test variant
   Assert.AreEqual('TestVariant', string(FList[0].VariantValue));
@@ -2538,8 +2538,6 @@ begin
 end;
 
 procedure TObjectListTestObject.TestPack;
-var
-  Obj: TMyObject;
 begin
   FList.Add(TMyObject.Create(1));
   FList.Add(nil);
@@ -2556,8 +2554,6 @@ begin
 end;
 
 procedure TObjectListTestObject.TestAddRange;
-var
-  MoreObjects: TObjectList<TMyObject>;
 begin
   FList.AddRange([
     TMyObject.Create(4),
