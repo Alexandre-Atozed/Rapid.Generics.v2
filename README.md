@@ -16,7 +16,7 @@ The original library could not be used in a real application due to several issu
 ## What is different in v2?
 
 ### ✅ Unit Tests
-* 150 new unit tests added for `TDictionary<>`, `TList<>`, `TQueue<>`, and `TStack<>` classes
+* 163 new unit tests added for `TDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, and `TStack<>` classes
 * All tests run memory leak free. Tested with FastMM4 in FullDebugMode
 * All tests can also use standard System.Generics.Collections data structures, just disabling a directive (undefine TEST_RAPIDGENERICS), making it easy to compare unexpected behavior  
 * New tests added to the performance test (benchmark) application  
@@ -60,5 +60,3 @@ This has been tested with:
 
 ## 📌 TRapidDictionary/TRapidObjectDictionary
 Rapid "inline" `TDictionary` / `TObjectDictionary` equivalents with default hash codes and comparers.
-
-
