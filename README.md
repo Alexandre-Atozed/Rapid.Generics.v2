@@ -4,6 +4,8 @@
 
 This is a modified fork of [Rapid.Generics](https://github.com/d-mozulyov/Rapid.Generics/) with improvements and fixes.
 
+Github repository: https://github.com/Alexandre-Atozed/Rapid.Generics.v2
+
 ## Why v2?
 
 The original library could not be used in a real application due to several issues:
@@ -14,7 +16,7 @@ The original library could not be used in a real application due to several issu
 ## What is different in v2?
 
 ### ✅ Unit Tests
-* 163 new unit tests added for `TDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, and `TStack<>` classes
+* 150 new unit tests added for `TDictionary<>`, `TList<>`, `TQueue<>`, and `TStack<>` classes
 * All tests run memory leak free. Tested with FastMM4 in FullDebugMode
 * All tests can also use standard System.Generics.Collections data structures, just disabling a directive (undefine TEST_RAPIDGENERICS), making it easy to compare unexpected behavior  
 * New tests added to the performance test (benchmark) application  
