@@ -355,7 +355,7 @@ type
   TListTestRecordComplex = class
   private
     FList: TList<TComplexRecord>;
-    function CreateComplexRecord(AID: Integer; AName: string): TComplexRecord;
+    function CreateComplexRecord(AID: Integer; const AName: string): TComplexRecord;
   public
     [Setup]
     procedure Setup;
@@ -2179,7 +2179,7 @@ begin
   FreeAndNil(FList);
 end;
 
-function TListTestRecordComplex.CreateComplexRecord(AID: Integer; AName: string): TComplexRecord;
+function TListTestRecordComplex.CreateComplexRecord(AID: Integer; const AName: string): TComplexRecord;
 var
   Rec: TComplexRecord;
 begin
