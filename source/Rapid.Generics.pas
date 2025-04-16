@@ -15444,6 +15444,13 @@ begin
   end;
 end;
 
+class procedure TCustomDictionary<TKey,TValue>.ClearMethod(var Method);
+begin
+  {$ifdef WEAKINSTREF}
+  TMethod(Method).Data := nil;
+  {$endif}
+end;
+
 destructor TCustomDictionary<TKey,TValue>.Destroy;
 begin
   Clear;
@@ -16390,13 +16397,6 @@ begin
   Result.Code := PPointer(PNativeUInt(Intf)^ + MethodNum * SizeOf(Pointer))^;
 end;
 
-class procedure TCustomDictionary<TKey,TValue>.ClearMethod(var Method);
-begin
-  {$ifdef WEAKINSTREF}
-  TMethod(Method).Data := nil;
-  {$endif}
-end;
-
 procedure TCustomDictionary<TKey,TValue>.SetKeyNotify(const Value: TCollectionNotifyEvent<TKey>);
 begin
   if (TMethod(FOnKeyNotify).Code <> TMethod(Value).Code) or
@@ -16783,6 +16783,12 @@ end;
 constructor TRapidDictionary<TKey,TValue>.Create(ACapacity: Integer);
 begin
   inherited;
+end;
+
+procedure TRapidDictionary<TKey,TValue>.AddOrSetValue(const Key: TKey; const Value: TValue);
+begin
+  Self.FInternalFindValue := @Value;
+  Self.InternalFindItem(Key, FOUND_REPLACE + EMPTY_NEW);
 end;
 
 constructor TRapidDictionary<TKey,TValue>.Create(const Collection: TEnumerable<TPair<TKey,TValue>>);
@@ -17550,12 +17556,6 @@ begin
   end;
 end;
 
-procedure TRapidDictionary<TKey,TValue>.AddOrSetValue(const Key: TKey; const Value: TValue);
-begin
-  Self.FInternalFindValue := @Value;
-  Self.InternalFindItem(Key, FOUND_REPLACE + EMPTY_NEW);
-end;
-
 function TRapidDictionary<TKey,TValue>.ContainsKey(const Key: TKey): Boolean;
 begin
   Result := (Self.InternalFindItem(Key, FOUND_NONE + EMPTY_NONE) <> nil);
@@ -17594,18 +17594,18 @@ begin
   SetNotifyMethods;
 end;
 
-destructor TCustomList<T>.Destroy;
-begin
-  Clear;
-  ClearMethod(FInternalNotify);
-  inherited;
-end;
-
 class procedure TCustomList<T>.ClearMethod(var Method);
 begin
   {$ifdef WEAKINSTREF}
   TMethod(Method).Data := nil;
   {$endif}
+end;
+
+destructor TCustomList<T>.Destroy;
+begin
+  Clear;
+  ClearMethod(FInternalNotify);
+  inherited;
 end;
 
 class function TCustomList<T>.EmptyException: Exception;
@@ -21182,6 +21182,71 @@ begin
   inherited Create;
 end;
 
+procedure TStack<T>.Push(const Value: T);
+var
+  Count, Null: NativeInt;
+  Item: ^TRAIIHelper.TData16;
+begin
+  Count := FCount.Native;
+  if (Count <> FCapacity.Native) and (not Assigned(FInternalNotify)) then
+  begin
+    Inc(Count);
+    FCount.Native := Count;
+    Dec(Count);
+    Item := Pointer(@FItems[Count]);
+
+    if (System.IsManagedType(T)) then
+    begin
+      if (GetTypeKind(T) = tkVariant) then
+      begin
+        Item.Integers[0] := 0;
+      end else
+      if (SizeOf(T) <= 16) then
+      begin
+        Null := 0;
+        {$ifdef SMALLINT}
+          if (SizeOf(T) >= SizeOf(Integer) * 1) then Item.Integers[0] := Null;
+          if (SizeOf(T) >= SizeOf(Integer) * 2) then Item.Integers[1] := Null;
+          if (SizeOf(T) >= SizeOf(Integer) * 3) then Item.Integers[2] := Null;
+          if (SizeOf(T)  = SizeOf(Integer) * 4) then Item.Integers[3] := Null;
+        {$else .LARGEINT}
+          if (SizeOf(T) >= SizeOf(Int64) * 1) then Item.Int64s[0] := Null;
+          if (SizeOf(T)  = SizeOf(Int64) * 2) then Item.Int64s[1] := Null;
+          case SizeOf(T) of
+             4..7: Item.Integers[0] := Null;
+           12..15: Item.Integers[2] := Null;
+          end;
+        {$endif}
+        case SizeOf(T) of
+           2,3: Item.Words[0] := 0;
+           6,7: Item.Words[2] := 0;
+         10,11: Item.Words[4] := 0;
+         14,15: Item.Words[6] := 0;
+        end;
+        case SizeOf(T) of
+           1: Item.Bytes[ 1-1] := 0;
+           3: Item.Bytes[ 3-1] := 0;
+           5: Item.Bytes[ 5-1] := 0;
+           7: Item.Bytes[ 7-1] := 0;
+           9: Item.Bytes[ 9-1] := 0;
+          11: Item.Bytes[11-1] := 0;
+          13: Item.Bytes[13-1] := 0;
+          15: Item.Bytes[15-1] := 0;
+        end;
+      end else
+      begin
+        TRAIIHelper<T>.Init(Pointer(Item));
+      end;
+    end;
+
+    PItem(Item)^ := Value;
+    Exit;
+  end else
+  begin
+    Self.InternalPush(Value);
+  end;
+end;
+
 constructor TStack<T>.Create(const Collection: TEnumerable<T>);
 var
   Item: T;
@@ -21256,71 +21321,6 @@ begin
       Self.Grow;
     end;
   until (False);
-end;
-
-procedure TStack<T>.Push(const Value: T);
-var
-  Count, Null: NativeInt;
-  Item: ^TRAIIHelper.TData16;
-begin
-  Count := FCount.Native;
-  if (Count <> FCapacity.Native) and (not Assigned(FInternalNotify)) then
-  begin
-    Inc(Count);
-    FCount.Native := Count;
-    Dec(Count);
-    Item := Pointer(@FItems[Count]);
-
-    if (System.IsManagedType(T)) then
-    begin
-      if (GetTypeKind(T) = tkVariant) then
-      begin
-        Item.Integers[0] := 0;
-      end else
-      if (SizeOf(T) <= 16) then
-      begin
-        Null := 0;
-        {$ifdef SMALLINT}
-          if (SizeOf(T) >= SizeOf(Integer) * 1) then Item.Integers[0] := Null;
-          if (SizeOf(T) >= SizeOf(Integer) * 2) then Item.Integers[1] := Null;
-          if (SizeOf(T) >= SizeOf(Integer) * 3) then Item.Integers[2] := Null;
-          if (SizeOf(T)  = SizeOf(Integer) * 4) then Item.Integers[3] := Null;
-        {$else .LARGEINT}
-          if (SizeOf(T) >= SizeOf(Int64) * 1) then Item.Int64s[0] := Null;
-          if (SizeOf(T)  = SizeOf(Int64) * 2) then Item.Int64s[1] := Null;
-          case SizeOf(T) of
-             4..7: Item.Integers[0] := Null;
-           12..15: Item.Integers[2] := Null;
-          end;
-        {$endif}
-        case SizeOf(T) of
-           2,3: Item.Words[0] := 0;
-           6,7: Item.Words[2] := 0;
-         10,11: Item.Words[4] := 0;
-         14,15: Item.Words[6] := 0;
-        end;
-        case SizeOf(T) of
-           1: Item.Bytes[ 1-1] := 0;
-           3: Item.Bytes[ 3-1] := 0;
-           5: Item.Bytes[ 5-1] := 0;
-           7: Item.Bytes[ 7-1] := 0;
-           9: Item.Bytes[ 9-1] := 0;
-          11: Item.Bytes[11-1] := 0;
-          13: Item.Bytes[13-1] := 0;
-          15: Item.Bytes[15-1] := 0;
-        end;
-      end else
-      begin
-        TRAIIHelper<T>.Init(Pointer(Item));
-      end;
-    end;
-
-    PItem(Item)^ := Value;
-    Exit;
-  end else
-  begin
-    Self.InternalPush(Value);
-  end;
 end;
 
 function TStack<T>.InternalPop(const Action: TCollectionNotification): T;
@@ -21583,6 +21583,81 @@ begin
   inherited Create;
 end;
 
+procedure TQueue<T>.Enqueue(const Value: T);
+var
+  Count, Null: NativeInt;
+  Item: ^TRAIIHelper.TData16;
+begin
+  Count := FCount.Native;
+  if (Count <> FCapacity.Native) and (not Assigned(FInternalNotify)) then
+  begin
+    FCount.Native := Count + 1;
+    Count := FHead;
+    repeat
+      if (Count <> FCapacity.Native) then
+      begin
+        Inc(Count);
+        FHead := Count;
+        Dec(Count);
+        Item := Pointer(@FItems[Count]);
+
+        if (System.IsManagedType(T)) then
+        begin
+          if (GetTypeKind(T) = tkVariant) then
+          begin
+            Item.Integers[0] := 0;
+          end else
+          if (SizeOf(T) <= 16) then
+          begin
+            Null := 0;
+            {$ifdef SMALLINT}
+              if (SizeOf(T) >= SizeOf(Integer) * 1) then Item.Integers[0] := Null;
+              if (SizeOf(T) >= SizeOf(Integer) * 2) then Item.Integers[1] := Null;
+              if (SizeOf(T) >= SizeOf(Integer) * 3) then Item.Integers[2] := Null;
+              if (SizeOf(T)  = SizeOf(Integer) * 4) then Item.Integers[3] := Null;
+            {$else .LARGEINT}
+              if (SizeOf(T) >= SizeOf(Int64) * 1) then Item.Int64s[0] := Null;
+              if (SizeOf(T)  = SizeOf(Int64) * 2) then Item.Int64s[1] := Null;
+              case SizeOf(T) of
+                 4..7: Item.Integers[0] := Null;
+               12..15: Item.Integers[2] := Null;
+              end;
+            {$endif}
+            case SizeOf(T) of
+               2,3: Item.Words[0] := 0;
+               6,7: Item.Words[2] := 0;
+             10,11: Item.Words[4] := 0;
+             14,15: Item.Words[6] := 0;
+            end;
+            case SizeOf(T) of
+               1: Item.Bytes[ 1-1] := 0;
+               3: Item.Bytes[ 3-1] := 0;
+               5: Item.Bytes[ 5-1] := 0;
+               7: Item.Bytes[ 7-1] := 0;
+               9: Item.Bytes[ 9-1] := 0;
+              11: Item.Bytes[11-1] := 0;
+              13: Item.Bytes[13-1] := 0;
+              15: Item.Bytes[15-1] := 0;
+            end;
+          end else
+          begin
+            TRAIIHelper<T>.Init(Pointer(Item));
+          end;
+        end;
+
+        PItem(Item)^ := Value;
+        Exit;
+      end else
+      begin
+        Count := 0;
+      end;
+    until (False);
+  end else
+  begin
+    Self.InternalEnqueue(Value);
+  end;
+end;
+
 constructor TQueue<T>.Create(const Collection: TEnumerable<T>);
 var
   Item: T;
@@ -21669,81 +21744,6 @@ begin
       Self.Grow;
     end;
   until (False);
-end;
-
-procedure TQueue<T>.Enqueue(const Value: T);
-var
-  Count, Null: NativeInt;
-  Item: ^TRAIIHelper.TData16;
-begin
-  Count := FCount.Native;
-  if (Count <> FCapacity.Native) and (not Assigned(FInternalNotify)) then
-  begin
-    FCount.Native := Count + 1;
-    Count := FHead;
-    repeat
-      if (Count <> FCapacity.Native) then
-      begin
-        Inc(Count);
-        FHead := Count;
-        Dec(Count);
-        Item := Pointer(@FItems[Count]);
-
-        if (System.IsManagedType(T)) then
-        begin
-          if (GetTypeKind(T) = tkVariant) then
-          begin
-            Item.Integers[0] := 0;
-          end else
-          if (SizeOf(T) <= 16) then
-          begin
-            Null := 0;
-            {$ifdef SMALLINT}
-              if (SizeOf(T) >= SizeOf(Integer) * 1) then Item.Integers[0] := Null;
-              if (SizeOf(T) >= SizeOf(Integer) * 2) then Item.Integers[1] := Null;
-              if (SizeOf(T) >= SizeOf(Integer) * 3) then Item.Integers[2] := Null;
-              if (SizeOf(T)  = SizeOf(Integer) * 4) then Item.Integers[3] := Null;
-            {$else .LARGEINT}
-              if (SizeOf(T) >= SizeOf(Int64) * 1) then Item.Int64s[0] := Null;
-              if (SizeOf(T)  = SizeOf(Int64) * 2) then Item.Int64s[1] := Null;
-              case SizeOf(T) of
-                 4..7: Item.Integers[0] := Null;
-               12..15: Item.Integers[2] := Null;
-              end;
-            {$endif}
-            case SizeOf(T) of
-               2,3: Item.Words[0] := 0;
-               6,7: Item.Words[2] := 0;
-             10,11: Item.Words[4] := 0;
-             14,15: Item.Words[6] := 0;
-            end;
-            case SizeOf(T) of
-               1: Item.Bytes[ 1-1] := 0;
-               3: Item.Bytes[ 3-1] := 0;
-               5: Item.Bytes[ 5-1] := 0;
-               7: Item.Bytes[ 7-1] := 0;
-               9: Item.Bytes[ 9-1] := 0;
-              11: Item.Bytes[11-1] := 0;
-              13: Item.Bytes[13-1] := 0;
-              15: Item.Bytes[15-1] := 0;
-            end;
-          end else
-          begin
-            TRAIIHelper<T>.Init(Pointer(Item));
-          end;
-        end;
-
-        PItem(Item)^ := Value;
-        Exit;
-      end else
-      begin
-        Count := 0;
-      end;
-    until (False);
-  end else
-  begin
-    Self.InternalEnqueue(Value);
-  end;
 end;
 
 function TQueue<T>.InternalDequeue(const Action: TCollectionNotification): T;
@@ -22027,6 +22027,11 @@ end;
 
 { TThreadList<T> }
 
+procedure TThreadList<T>.UnlockList;
+begin
+  TMonitor.Exit(FLock);
+end;
+
 procedure TThreadList<T>.Add(const Item: T);
 begin
   LockList;
@@ -22090,11 +22095,6 @@ begin
   finally
     UnlockList;
   end;
-end;
-
-procedure TThreadList<T>.UnlockList;
-begin
-  TMonitor.Exit(FLock);
 end;
 
 { TThreadedQueue<T> }
