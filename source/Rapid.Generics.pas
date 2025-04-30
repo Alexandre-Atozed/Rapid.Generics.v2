@@ -1743,6 +1743,7 @@ type
     procedure TrimExcess; {$IFDEF HAS_INLINE}inline;{$ENDIF}
     function ToArray: TArray<T>; override; final;
     function GetEnumerator: TEnumerator;
+	function IsEmpty: Boolean;
 
     property Count: Integer read FCount.Int;
     property Capacity: Integer read FCapacity.Int write SetCapacity;
@@ -17863,6 +17864,11 @@ end;
 function TCustomList<T>.GetEnumerator: TEnumerator;
 begin
   Result.Data.Init(Self);
+end;
+
+function TCustomList<T>.IsEmpty: Boolean;
+begin
+  Result := FCount.Int = 0;
 end;
 
 function TCustomList<T>.ToArray: TArray<T>;

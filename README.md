@@ -38,7 +38,7 @@ The original library could not be used in a real application due to several issu
 * Implemented missing method: `TryAdd`
 
 ### 📌 TList<> Improvements
-* Implemented missing method: `ExtractAt()`
+* Implemented missing methods: `ExtractAt()` and `IsEmpty()`
 * Fixed `TList<>.InternalDelete` method for managed types, which fixed memory leaks when adding records with managed types to lists
 * Sorting:
   * Now exclusively uses **QuickSort** for sorting
