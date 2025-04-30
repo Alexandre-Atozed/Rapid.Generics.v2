@@ -16,7 +16,7 @@ The original library could not be used in a real application due to several issu
 ## What is different in v2?
 
 ### ✅ Unit Tests
-* 172 new unit tests added for `TDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, and `TStack<>` classes
+* 185 new unit tests added for `TDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, and `TStack<>` classes
 * All tests run memory leak free. Tested with FastMM4 in FullDebugMode
 * All tests can also use standard System.Generics.Collections data structures, just disabling a directive (undefine TEST_RAPIDGENERICS), making it easy to compare unexpected behavior  
 * New tests added to the performance test (benchmark) application  
@@ -28,6 +28,7 @@ The original library could not be used in a real application due to several issu
 * Unused code removed
 * Warnings silenced (most via `{$WARNINGS OFF}` when the compiler cannot detect variable initialization inside a `case` statement)
 * Fixed AV during inteface clean up (Creating dictionaries/lists with interfaces would cause AV when destroying)
+* Fixed destruction of objects owned by TObjectList<>, TObjectStack<>, TObjectQueue<> when a descendant class overrides Notify() method
 
 ### 📌 TArray Improvements
 * Implemented missing methods: `IndexOf<T>` and `Contains<T>`
@@ -54,10 +55,11 @@ This has been tested with:
 ## 📌 Dependencies
 * No external dependencies
 * Unit test project requires [DUnitX](https://github.com/VSoftTechnologies/DUnitX/tree/master) framework
+* Checking memory leaks require FastMM4 (included in the 3rd party folder)
 
 ## 📌 How to Use
 1. Include `Rapid.Generics.pas` in your project.  
-2. Replace `Generics.Collections` and `Generics.Defaults` with `Rapid.Generics` in your `uses` sections.  
+2. Replace `System.Generics.Collections` and `System.Generics.Defaults` with `Rapid.Generics` in your `uses` sections.  
 
 ## 📌 TRapidDictionary/TRapidObjectDictionary
 Rapid "inline" `TDictionary` / `TObjectDictionary` equivalents with default hash codes and comparers.
