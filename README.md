@@ -16,7 +16,7 @@ The original library could not be used in a real application due to several issu
 ## What is different in v2?
 
 ### ✅ Unit Tests
-* 163 new unit tests added for `TDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, and `TStack<>` classes
+* 172 new unit tests added for `TDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, and `TStack<>` classes
 * All tests run memory leak free. Tested with FastMM4 in FullDebugMode
 * All tests can also use standard System.Generics.Collections data structures, just disabling a directive (undefine TEST_RAPIDGENERICS), making it easy to compare unexpected behavior  
 * New tests added to the performance test (benchmark) application  
@@ -27,6 +27,7 @@ The original library could not be used in a real application due to several issu
 * Local variables renamed for clarity (e.g., distinguishing them from properties like `Count`)
 * Unused code removed
 * Warnings silenced (most via `{$WARNINGS OFF}` when the compiler cannot detect variable initialization inside a `case` statement)
+* Fixed AV during inteface clean up (Creating dictionaries/lists with interfaces would cause AV when destroying)
 
 ### 📌 TArray Improvements
 * Implemented missing methods: `IndexOf<T>` and `Contains<T>`

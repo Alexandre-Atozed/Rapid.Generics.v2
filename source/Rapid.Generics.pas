@@ -6089,7 +6089,9 @@ begin
             tkWString,
             {$endif}
             tkLString, tkUString: TRAIIHelper.ULStrClear(@TData(Item^).Native);
-            tkInterface: IInterface(Pointer(@TData(Item^).Native))._Release;
+            // AM: Fix for IInterface cleanup.
+            // We could also make it  IInterface(PInterface(Item)^)._Release;
+            tkInterface: IInterface(Pointer(TData(Item^).Native))._Release;
             tkDynArray: TRAIIHelper.DynArrayClear(@TData(Item^).Native, TypeInfo(T));
           end;
         end;

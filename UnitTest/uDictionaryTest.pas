@@ -160,7 +160,58 @@ type
     procedure TestMany;
   end;
 
+// Define the interface
+  ITestInterface = interface
+    ['{DFB870C1-D271-44FA-9C5D-627FC2407B0A}']
+    function GetValue: Integer;
+    procedure SetValue(AValue: Integer);
+    property Value: Integer read GetValue write SetValue;
+  end;
+
+  // Implementation class for the interface
+  TTestObject = class(TInterfacedObject, ITestInterface)
+  private
+    FValue: Integer;
+    function GetValue: Integer;
+    procedure SetValue(AValue: Integer);
+  public
+    constructor Create(AValue: Integer);
+    procedure BeforeDestruction; override;
+  end;
+
+  [TestFixture]
+  TDictionaryIIntfTest = class
+  private
+    FDictionary: TDictionary<Integer, ITestInterface>;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+    [Test]
+    procedure TestRemove;
+    [Test]
+    procedure TestFind;
+    [Test]
+    procedure TestFindOrAdd;
+    [Test]
+    procedure TestExtractPair;
+    [Test]
+    procedure TestTryGetValue;
+    [Test]
+    procedure TestAddOrSetValue;
+    [Test]
+    procedure TestContainsKey;
+    [Test]
+    procedure TestMany;
+  end;
+
 implementation
+
+uses
+  Windows;
 
 {$REGION 'TDictionaryISTest' }
 
@@ -647,12 +698,149 @@ end;
 
 {$ENDREGION 'TDictionaryIPTest' }
 
+{$REGION 'TDictionaryIIntfTest'}
+
+{ TMyObjectType }
+
+constructor TTestObject.Create(AValue: Integer);
+begin
+  inherited Create;
+  FValue := AValue;
+end;
+
+procedure TTestObject.BeforeDestruction;
+begin
+  // For debugging
+  inherited;
+end;
+
+function TTestObject.GetValue: Integer;
+begin
+  Result := FValue;
+end;
+
+procedure TTestObject.SetValue(AValue: Integer);
+begin
+  FValue := AValue;
+end;
+
+{ TDictionaryIIntfTest }
+
+procedure TDictionaryIIntfTest.Setup;
+begin
+  FDictionary := TDictionary<Integer, ITestInterface>.Create;
+end;
+
+procedure TDictionaryIIntfTest.TearDown;
+begin
+  FreeAndNil(FDictionary);
+end;
+
+procedure TDictionaryIIntfTest.TestAdd;
+begin
+  FDictionary.Add(1, TTestObject.Create(11));
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(11, FDictionary.Items[1].Value);
+end;
+
+procedure TDictionaryIIntfTest.TestRemove;
+begin
+  FDictionary.Add(1, TTestObject.Create(11));
+  FDictionary.Remove(1);
+  Assert.IsFalse(FDictionary.ContainsKey(1));
+end;
+
+procedure TDictionaryIIntfTest.TestFind;
+var
+  FoundValue: ITestInterface;
+begin
+  FDictionary.Add(1, TTestObject.Create(11));
+  FoundValue := FDictionary.Items[1]; // Direct access as "Find" is not standard
+  Assert.IsNotNull(FoundValue);
+  Assert.AreEqual(11, FoundValue.Value);
+end;
+
+procedure TDictionaryIIntfTest.TestFindOrAdd;
+var
+  FoundValue: ITestInterface;
+begin
+  // AddOrSetValue simulates FindOrAdd behavior
+  FDictionary.AddOrSetValue(2, TTestObject.Create(22));
+  FoundValue := FDictionary.Items[2];
+  Assert.IsNotNull(FoundValue);
+  Assert.AreEqual(22, FoundValue.Value);
+end;
+
+procedure TDictionaryIIntfTest.TestExtractPair;
+var
+  Pair: TPair<Integer, ITestInterface>;
+begin
+  FDictionary.Add(3, TTestObject.Create(33));
+  Pair := FDictionary.ExtractPair(3);
+  Assert.AreEqual(3, Pair.Key);
+  Assert.AreEqual(33, Pair.Value.Value);
+  Assert.IsFalse(FDictionary.ContainsKey(3));
+end;
+
+procedure TDictionaryIIntfTest.TestTryGetValue;
+var
+  Value: ITestInterface;
+begin
+  FDictionary.Add(4, TTestObject.Create(44));
+  Assert.IsTrue(FDictionary.TryGetValue(4, Value));
+  Assert.AreEqual(44, Value.Value);
+end;
+
+procedure TDictionaryIIntfTest.TestAddOrSetValue;
+begin
+  FDictionary.AddOrSetValue(5, TTestObject.Create(55));
+  Assert.AreEqual(55, FDictionary.Items[5].Value);
+  FDictionary.AddOrSetValue(5, TTestObject.Create(56));
+  Assert.AreEqual(56, FDictionary.Items[5].Value);
+end;
+
+procedure TDictionaryIIntfTest.TestContainsKey;
+begin
+  FDictionary.Add(6, TTestObject.Create(66));
+  Assert.IsTrue(FDictionary.ContainsKey(6));
+  Assert.IsFalse(FDictionary.ContainsKey(7));
+end;
+
+procedure TDictionaryIIntfTest.TestMany;
+const
+  ItemCount = 100000;
+var
+  I: Integer;
+  Value: ITestInterface;
+begin
+  // Add items
+  for I := 1 to ItemCount do
+    FDictionary.Add(I, TTestObject.Create(I * 10 + I));
+  Assert.AreEqual(ItemCount, FDictionary.Count);
+
+  // Verify all items exist
+  for I := 1 to ItemCount do
+  begin
+    Assert.IsTrue(FDictionary.TryGetValue(I, Value));
+    Assert.AreEqual(I * 10 + I, Value.Value);
+  end;
+
+  // Remove all items
+  for I := 1 to ItemCount do
+    FDictionary.Remove(I);
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+{$ENDREGION 'TDictionaryIIntfTest'}
+
+
 initialization
   TDUnitX.RegisterTestFixture(TDictionaryISTest);
   TDUnitX.RegisterTestFixture(TDictionarySSTest);
   TDUnitX.RegisterTestFixture(TDictionaryIITest);
   TDUnitX.RegisterTestFixture(TDictionaryIDTest);
   TDUnitX.RegisterTestFixture(TDictionaryIPTest);
+  TDUnitX.RegisterTestFixture(TDictionaryIIntfTest);
 
 end.
 
