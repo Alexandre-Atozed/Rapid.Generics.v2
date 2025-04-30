@@ -22234,19 +22234,21 @@ end;
 
 constructor TObjectList<T>.Create(AOwnsObjects: Boolean);
 begin
-  FOwnsObjects := AOwnsObjects;
+  // AM: Must either call the setter or call SetNotifyMethods directly otherwise
+  // pointers won't be set correctly
+  OwnsObjects := AOwnsObjects;
   inherited Create;
 end;
 
 constructor TObjectList<T>.Create(const AComparer: IComparer<T>; AOwnsObjects: Boolean);
 begin
-  FOwnsObjects := AOwnsObjects;
+  OwnsObjects := AOwnsObjects;
   inherited Create(AComparer);
 end;
 
 constructor TObjectList<T>.Create(const Collection: TEnumerable<T>; AOwnsObjects: Boolean);
 begin
-  FOwnsObjects := AOwnsObjects;
+  OwnsObjects := AOwnsObjects;
   inherited Create(Collection);
 end;
 
@@ -22310,13 +22312,15 @@ end;
 
 constructor TObjectStack<T>.Create(AOwnsObjects: Boolean);
 begin
-  FOwnsObjects := AOwnsObjects;
+  // AM: Must either call the setter or call SetNotifyMethods directly otherwise
+  // pointers won't be set correctly
+  OwnsObjects := AOwnsObjects;
   inherited Create;
 end;
 
 constructor TObjectStack<T>.Create(const Collection: TEnumerable<T>; AOwnsObjects: Boolean);
 begin
-  FOwnsObjects := AOwnsObjects;
+  OwnsObjects := AOwnsObjects;
   inherited Create(Collection);
 end;
 
@@ -22385,13 +22389,15 @@ end;
 
 constructor TObjectQueue<T>.Create(AOwnsObjects: Boolean);
 begin
-  FOwnsObjects := AOwnsObjects;
+  // AM: Must either call the setter or call SetNotifyMethods directly otherwise
+  // pointers won't be set correctly
+  OwnsObjects := AOwnsObjects;
   inherited Create;
 end;
 
 constructor TObjectQueue<T>.Create(const Collection: TEnumerable<T>; AOwnsObjects: Boolean);
 begin
-  FOwnsObjects := AOwnsObjects;
+  OwnsObjects := AOwnsObjects;
   inherited Create(Collection);
 end;
 
