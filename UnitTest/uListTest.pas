@@ -355,7 +355,7 @@ type
   TListTestRecordComplex = class
   private
     FList: TList<TComplexRecord>;
-    function CreateComplexRecord(AID: Integer; AName: string): TComplexRecord;
+    function CreateComplexRecord(AID: Integer; const AName: string): TComplexRecord;
   public
     [Setup]
     procedure Setup;
@@ -1084,28 +1084,33 @@ end;
 type
   PInteger = ^Integer;
 
+procedure RaiseNilPointerEncounteredException;
+begin
+  raise Exception.Create('Nil pointer encountered in CompareItems');
+end;
+
 function ComparePointers(Item1, Item2: Pointer): Integer;
 var
-  Int1, Int2: Integer;
+  Int1, Int2: NativeInt;
 begin
   if (Item1 = nil) or (Item2 = nil) then
-    raise Exception.Create('Nil pointer encountered in CompareItems');
+    RaiseNilPointerEncounteredException;
 
-  Int1 := Integer(Item1);
-  Int2 := Integer(Item2);
+  Int1 := NativeInt(Item1);
+  Int2 := NativeInt(Item2);
 
   Result := Int1 - Int2;
 end;
 
 function ComparePointersDescending(Item1, Item2: Pointer): Integer;
 var
-  Int1, Int2: Integer;
+  Int1, Int2: NativeInt;
 begin
   if (Item1 = nil) or (Item2 = nil) then
-    raise Exception.Create('Nil pointer encountered in CompareItems');
+    RaiseNilPointerEncounteredException;
 
-  Int1 := Integer(Item1);
-  Int2 := Integer(Item2);
+  Int1 := NativeInt(Item1);
+  Int2 := NativeInt(Item2);
 
   Result := Int2 - Int1;
 end;
@@ -2179,7 +2184,7 @@ begin
   FreeAndNil(FList);
 end;
 
-function TListTestRecordComplex.CreateComplexRecord(AID: Integer; AName: string): TComplexRecord;
+function TListTestRecordComplex.CreateComplexRecord(AID: Integer; const AName: string): TComplexRecord;
 var
   Rec: TComplexRecord;
 begin
