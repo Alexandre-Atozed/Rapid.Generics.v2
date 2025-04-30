@@ -434,6 +434,48 @@ type
     procedure TestHuge;
   end;
 
+  TMyObjectList = class(TObjectList<TMyObject>)
+  protected
+    procedure Notify(const Item: TMyObject; Action: TCollectionNotification); override;
+  end;
+
+  [TestFixture]
+  TObjectListDescendantTestObject = class
+  private
+    FList: TMyObjectList;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+    [Test]
+    procedure TestRemove;
+    [Test]
+    procedure TestDelete;
+    [Test]
+    procedure TestClear;
+    [Test]
+    procedure TestInsert;
+    [Test]
+    procedure TestContains;
+    [Test]
+    procedure TestCount;
+    [Test]
+    procedure TestSetOwnsObjects;
+    [Test]
+    procedure TestAddRange;
+    [Test]
+    procedure TestDeleteRange;
+    [Test]
+    procedure TestPack;
+    [Test]
+    procedure TestMany;
+    [Test]
+    procedure TestHuge;
+  end;
+
   {$ENDIF TEST_OBJECTLIST}
 
 implementation
@@ -2638,6 +2680,233 @@ end;
 
 {$EndRegion 'TObjectList<TMyObject> Tests'}
 
+{$Region 'TMyObjectList Tests'}
+
+{ TObjectListDescendantTestObject }
+
+{$IFDEF TEST_OBJECTLIST}
+
+procedure TObjectListDescendantTestObject.Setup;
+var
+  Comparer: IComparer<TMyObject>;
+begin
+  Comparer := TObjectListTestObjectComparer.Create;
+  FList := TMyObjectList.Create(Comparer);
+end;
+
+procedure TObjectListDescendantTestObject.TearDown;
+begin
+  FreeAndNil(FList);
+end;
+
+procedure TObjectListDescendantTestObject.TestAdd;
+begin
+  FList.Add(TMyObject.Create(10));
+  Assert.AreEqual(1, FList.Count);
+  Assert.AreEqual(10, FList[0].ID);
+end;
+
+procedure TObjectListDescendantTestObject.TestRemove;
+var
+  Obj10, Obj20: TMyObject;
+begin
+  Obj10 := TMyObject.Create(10);
+  Obj20 := TMyObject.Create(20);
+  FList.Add(Obj10);
+  FList.Add(Obj20);
+  Assert.AreEqual(2, FList.Count);
+  Assert.IsTrue(FList.Remove(Obj10) >= 0);
+  Assert.AreEqual(1, FList.Count);
+  Assert.AreEqual(20, FList[0].ID);
+end;
+
+procedure TObjectListDescendantTestObject.TestDelete;
+begin
+  FList.Add(TMyObject.Create(10));
+  FList.Add(TMyObject.Create(20));
+  FList.Add(TMyObject.Create(30));
+  Assert.AreEqual(3, FList.Count);
+  FList.Delete(0);
+  Assert.AreEqual(2, FList.Count);
+  Assert.AreEqual(20, FList[0].ID);
+  FList.Delete(1);
+  Assert.AreEqual(1, FList.Count);
+  Assert.AreEqual(20, FList[0].ID);
+  FList.Delete(0);
+  Assert.AreEqual(0, FList.Count);
+end;
+
+procedure TObjectListDescendantTestObject.TestClear;
+begin
+  FList.Add(TMyObject.Create(1));
+  FList.Add(TMyObject.Create(2));
+  FList.Add(TMyObject.Create(3));
+  FList.Clear;
+  Assert.AreEqual(0, FList.Count);
+end;
+
+procedure TObjectListDescendantTestObject.TestInsert;
+begin
+  FList.Add(TMyObject.Create(10));
+  FList.Insert(0, TMyObject.Create(5));
+  Assert.AreEqual(2, FList.Count);
+  Assert.AreEqual(5, FList[0].ID);
+  Assert.AreEqual(10, FList[1].ID);
+end;
+
+procedure TObjectListDescendantTestObject.TestContains;
+var
+  Obj: TMyObject;
+  TestObj: TMyObject;
+begin
+  Obj := TMyObject.Create(42);
+  FList.Add(Obj);
+  Assert.IsTrue(FList.Contains(Obj));
+  TestObj := TMyObject.Create(99);
+  Assert.IsFalse(FList.Contains(TestObj)); // not added
+  TestObj.Free;
+end;
+
+procedure TObjectListDescendantTestObject.TestCount;
+begin
+  Assert.AreEqual(0, FList.Count);
+  FList.Add(TMyObject.Create(100));
+  Assert.AreEqual(1, FList.Count);
+  FList.Add(TMyObject.Create(200));
+  Assert.AreEqual(2, FList.Count);
+end;
+
+procedure TObjectListDescendantTestObject.TestSetOwnsObjects;
+var
+  Obj10, Obj20: TMyObject;
+begin
+  Obj10 := TMyObject.Create(10);
+  Obj20 := TMyObject.Create(20);
+  // change OwnsObjects
+  FList.OwnsObjects := False;
+  FList.Add(Obj10);
+  FList.Add(Obj20);
+  Assert.AreEqual(2, FList.Count);
+  Assert.IsTrue(FList.Remove(Obj10) >= 0);
+  Assert.IsTrue(FList.Remove(Obj20) >= 0);
+  // It's safe to access them because they shouldn't have been removed
+  Assert.IsTrue(Obj10.ID = 10);
+  Assert.IsTrue(Obj20.ID = 20);
+  // Change OwnsObjects again
+  FList.OwnsObjects := True;
+  FList.Add(Obj10);
+  FList.Add(Obj20);
+  Assert.AreEqual(2, FList.Count);
+  // No memory leak here
+  FList.Clear;
+  Assert.AreEqual(0, FList.Count);
+end;
+
+procedure TObjectListDescendantTestObject.TestPack;
+begin
+  FList.Add(TMyObject.Create(1));
+  FList.Add(nil);
+  FList.Add(TMyObject.Create(2));
+  FList.Add(nil);
+  FList.Add(TMyObject.Create(3));
+
+  FList.Pack;
+
+  Assert.AreEqual(3, FList.Count);
+  Assert.IsTrue(Assigned(FList[0]) and (FList[0].ID = 1));
+  Assert.IsTrue(Assigned(FList[1]) and (FList[1].ID = 2));
+  Assert.IsTrue(Assigned(FList[2]) and (FList[2].ID = 3));
+end;
+
+procedure TObjectListDescendantTestObject.TestAddRange;
+begin
+  FList.AddRange([
+    TMyObject.Create(4),
+    TMyObject.Create(5),
+    TMyObject.Create(6)
+  ]);
+  Assert.AreEqual(3, FList.Count);
+
+  FList.AddRange([
+    TMyObject.Create(1),
+    TMyObject.Create(2),
+    TMyObject.Create(3)
+  ]);
+  Assert.AreEqual(6, FList.Count);
+
+  FList.AddRange([
+    TMyObject.Create(7),
+    TMyObject.Create(8),
+    TMyObject.Create(9),
+    TMyObject.Create(10)
+  ]);
+  Assert.AreEqual(10, FList.Count);
+end;
+
+procedure TObjectListDescendantTestObject.TestDeleteRange;
+var
+  I: Integer;
+begin
+  for I := 1 to 10 do
+    FList.Add(TMyObject.Create(I));
+
+  FList.DeleteRange(3, 4); // Deletes items at index 3..6
+
+  Assert.AreEqual(6, FList.Count);
+
+  Assert.AreEqual(1, FList[0].ID);
+  Assert.AreEqual(2, FList[1].ID);
+  Assert.AreEqual(3, FList[2].ID);
+  Assert.AreEqual(8, FList[3].ID);
+  Assert.AreEqual(9, FList[4].ID);
+  Assert.AreEqual(10, FList[5].ID);
+end;
+
+procedure TObjectListDescendantTestObject.TestMany;
+const
+  Count = 1000;
+var
+  I: Integer;
+begin
+  for I := 1 to Count do
+    FList.Add(TMyObject.Create(I));
+
+  Assert.AreEqual(Count, FList.Count);
+
+  for I := 0 to Count - 1 do
+    Assert.AreEqual(I + 1, FList[I].ID);
+end;
+
+procedure TObjectListDescendantTestObject.TestHuge;
+const
+  Count = 500000;
+var
+  I: Integer;
+begin
+  for I := 1 to Count do
+    FList.Add(TMyObject.Create(I));
+
+  Assert.AreEqual(Count, FList.Count);
+
+  // Sample a few to ensure correctness
+  Assert.AreEqual(1, FList[0].ID);
+  Assert.AreEqual(Count, FList.Last.ID);
+  Assert.AreEqual(Count div 2, FList[Count div 2 - 1].ID);
+end;
+
+{$ENDIF TEST_OBJECTLIST}
+
+{$EndRegion 'TMyObjectList Tests'}
+
+{ TMyObjectList }
+
+procedure TMyObjectList.Notify(const Item: TMyObject;
+  Action: TCollectionNotification);
+begin
+  // Just need a different method pointer
+  inherited;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TListTestInteger);
   TDUnitX.RegisterTestFixture(TListTestDouble);
@@ -2648,5 +2917,6 @@ initialization
   TDUnitX.RegisterTestFixture(TListTestRecordDynamicArray);
   TDUnitX.RegisterTestFixture(TListTestRecordComplex);
   TDUnitX.RegisterTestFixture(TObjectListTestObject);
+  TDUnitX.RegisterTestFixture(TObjectListDescendantTestObject);
 
 end.

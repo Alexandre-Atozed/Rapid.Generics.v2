@@ -1976,6 +1976,7 @@ type
   protected
     FOwnsObjects: Boolean;
     procedure SetOwnsObjects(const Value: Boolean);
+    procedure DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
     procedure DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
     procedure DisposeOnly(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
     procedure SetNotifyMethods; override;
@@ -1990,6 +1991,7 @@ type
   protected
     FOwnsObjects: Boolean;
     procedure SetOwnsObjects(const Value: Boolean);
+    procedure DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
     procedure DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
     procedure DisposeOnly(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
     procedure SetNotifyMethods; override;
@@ -2004,6 +2006,7 @@ type
   protected
     FOwnsObjects: Boolean;
     procedure SetOwnsObjects(const Value: Boolean);
+    procedure DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
     procedure DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
     procedure DisposeOnly(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
     procedure SetNotifyMethods; override;
@@ -22256,6 +22259,13 @@ begin
   end;
 end;
 
+procedure TObjectList<T>.DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+begin
+  Self.Notify(Item, Action);
+  if (Action = cnRemoved) then
+    Item.{$ifdef NEXTGEN}DisposeOf{$else}Free{$endif};
+end;
+
 procedure TObjectList<T>.DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
 begin
   Self.FOnNotify(Sender, Item, Action);
@@ -22283,7 +22293,8 @@ begin
   VMTNotify := Self.Notify;
   if (TMethod(VMTNotify).Code <> @TCustomList<T>.Notify) then
   begin
-    TMethod(FInternalNotify).Code := @TCustomList<T>.NotifyCaller;
+    // AM: Fix for descendant classes with custom notify method.
+    TMethod(FInternalNotify).Code := @TObjectList<T>.DisposeNotifyCaller;
   end else
   if (Assigned(Self.FOnNotify)) then
   begin
@@ -22323,6 +22334,13 @@ begin
   end;
 end;
 
+procedure TObjectStack<T>.DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+begin
+  Self.Notify(Item, Action);
+  if (Action = cnRemoved) then
+    Item.{$ifdef NEXTGEN}DisposeOf{$else}Free{$endif};
+end;
+
 procedure TObjectStack<T>.DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
 begin
   Self.FOnNotify(Sender, Item, Action);
@@ -22350,7 +22368,8 @@ begin
   VMTNotify := Self.Notify;
   if (TMethod(VMTNotify).Code <> @TCustomList<T>.Notify) then
   begin
-    TMethod(FInternalNotify).Code := @TCustomList<T>.NotifyCaller;
+    // AM: Fix for descendant classes with custom notify method.
+    TMethod(FInternalNotify).Code := @TObjectStack<T>.DisposeNotifyCaller;
   end else
   if (Assigned(Self.FOnNotify)) then
   begin
@@ -22390,6 +22409,13 @@ begin
   end;
 end;
 
+procedure TObjectQueue<T>.DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+begin
+  Self.Notify(Item, Action);
+  if (Action = cnRemoved) then
+    Item.{$ifdef NEXTGEN}DisposeOf{$else}Free{$endif};
+end;
+
 procedure TObjectQueue<T>.DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
 begin
   Self.FOnNotify(Sender, Item, Action);
@@ -22417,7 +22443,8 @@ begin
   VMTNotify := Self.Notify;
   if (TMethod(VMTNotify).Code <> @TCustomList<T>.Notify) then
   begin
-    TMethod(FInternalNotify).Code := @TCustomList<T>.NotifyCaller;
+    // AM: Fix for descendant classes with custom notify method.
+    TMethod(FInternalNotify).Code := @TObjectQueue<T>.DisposeNotifyCaller;
   end else
   if (Assigned(Self.FOnNotify)) then
   begin
