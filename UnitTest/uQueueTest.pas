@@ -22,22 +22,16 @@ type
   public
     [Setup]
     procedure Setup;
-
     [TearDown]
     procedure TearDown;
-
     [Test]
     procedure TestEnqueue;
-
     [Test]
     procedure TestDequeue;
-
     [Test]
     procedure TestExtract;
-
     [Test]
     procedure TestPeek;
-
     [Test]
     procedure TestMany;
   end;

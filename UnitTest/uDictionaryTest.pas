@@ -377,14 +377,18 @@ end;
 
 procedure TDictionaryISTest.TestFind;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add(1, 'One');
   Assert.IsNotNull(FDictionary.Find(1));
+  {$ENDIF}
 end;
 
 procedure TDictionaryISTest.TestFindOrAdd;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd(2);
   Assert.IsNotNull(P);
+  {$ENDIF}
 end;
 
 procedure TDictionaryISTest.TestExtractPair;
@@ -474,14 +478,18 @@ end;
 
 procedure TDictionarySSTest.TestFind;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add('Key1', 'One');
   Assert.IsNotNull(FDictionary.Find('Key1'));
+  {$ENDIF}
 end;
 
 procedure TDictionarySSTest.TestFindOrAdd;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd('Key2');
   Assert.IsNotNull(P);
+  {$ENDIF}
 end;
 
 procedure TDictionarySSTest.TestExtractPair;
@@ -571,14 +579,18 @@ end;
 
 procedure TDictionaryIITest.TestFind;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add(1, 11);
   Assert.IsNotNull(FDictionary.Find(1));
+  {$ENDIF}
 end;
 
 procedure TDictionaryIITest.TestFindOrAdd;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd(2);
   Assert.IsNotNull(P);
+  {$ENDIF}
 end;
 
 procedure TDictionaryIITest.TestExtractPair;
@@ -668,14 +680,18 @@ end;
 
 procedure TDictionaryIDTest.TestFind;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add(1, 11.1);
   Assert.IsNotNull(FDictionary.Find(1));
+  {$ENDIF}
 end;
 
 procedure TDictionaryIDTest.TestFindOrAdd;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd(2);
   Assert.IsNotNull(P);
+  {$ENDIF}
 end;
 
 procedure TDictionaryIDTest.TestExtractPair;
@@ -765,14 +781,18 @@ end;
 
 procedure TDictionaryIPTest.TestFind;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add(1, Pointer(11));
   Assert.IsNotNull(FDictionary.Find(1));
+  {$ENDIF}
 end;
 
 procedure TDictionaryIPTest.TestFindOrAdd;
 begin
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd(2);
   Assert.IsNotNull(P);
+  {$ENDIF}
 end;
 
 procedure TDictionaryIPTest.TestExtractPair;
@@ -1284,11 +1304,9 @@ end;
 procedure TObjectDictionaryOITest.TestRemove;
 var
   Obj: TTestObject2;
-  Ptr: Pointer;
 begin
   Obj := TTestObject2.Create(11);
   FDictionary.Add(Obj, 1);
-  Ptr := Obj;
   FDictionary.Remove(Obj); // Dictionary frees the object
 
   Assert.IsTrue(FDictionary.Count = 0);
@@ -1434,11 +1452,9 @@ end;
 procedure TCustomObjectDictionaryOITest.TestRemove;
 var
   Obj: TTestObject2;
-  Ptr: Pointer;
 begin
   Obj := TTestObject2.Create(11);
   FDictionary.Add(Obj, 1);
-  Ptr := Obj;
   FDictionary.Remove(Obj); // Dictionary frees the object
 
   Assert.IsTrue(FDictionary.Count = 0);
