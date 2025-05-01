@@ -1,0 +1,6 @@
+[submodule "3rdParty/FastMM4"]
+	path = 3rdParty/FastMM4
+	url = https://github.com/pleriche/FastMM4
+[submodule "3rdParty/DUnitX"]
+	path = 3rdParty/DUnitX
+	url = https://github.com/VSoftTechnologies/DUnitX.git
