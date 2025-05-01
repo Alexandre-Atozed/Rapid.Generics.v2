@@ -15,7 +15,7 @@ type
     property ID: Integer read FId;
   end;
 
-// Define the interface
+  // Define the interface
   ITestInterface = interface
     ['{DFB870C1-D271-44FA-9C5D-627FC2407B0A}']
     function GetValue: Integer;
@@ -67,6 +67,5 @@ procedure TTestInterfacedObject.SetValue(AValue: Integer);
 begin
   FValue := AValue;
 end;
-
 
 end.
