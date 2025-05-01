@@ -16,7 +16,7 @@ The original library could not be used in a real application due to several issu
 ## What is different in v2?
 
 ### ✅ Unit Tests
-* 185 new unit tests added for `TDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, and `TStack<>` classes
+* 221 new unit tests added for `TDictionary<>`, `TObjectDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, and `TStack<>` classes
 * All tests run memory leak free. Tested with FastMM4 in FullDebugMode
 * All tests can also use standard System.Generics.Collections data structures, just disabling a directive (undefine TEST_RAPIDGENERICS), making it easy to compare unexpected behavior  
 * New tests added to the performance test (benchmark) application  
@@ -37,6 +37,10 @@ The original library could not be used in a real application due to several issu
 ### 📌 TDictionary<> Improvements
 * Implemented missing method: `TryAdd`
 
+### 📌 TObjectDictionary<> Improvements
+* Implemented missing method: `TryAdd`
+* Fixed memory leaks when overriding KeyNotify()/ValueNotify() in descendant classes (doOwnsKeys or doOwnsValues)
+
 ### 📌 TList<> Improvements
 * Implemented missing methods: `ExtractAt()` and `IsEmpty()`
 * Fixed `TList<>.InternalDelete` method for managed types, which fixed memory leaks when adding records with managed types to lists
@@ -45,6 +49,9 @@ The original library could not be used in a real application due to several issu
   * QuickSort corner cases fixed, preventing infinite loops due to improper index bounds during pivot selection
   * Removed `RadixSort` and `Insertion` routines (both failed basic unit tests). Plans to revisit this topic in the near future
   * Fixed `SortDescending()` methods
+
+### 📌 TObjectList<> Improvements
+* Fixed memory leaks when overriding Notify() in descendant classes (OwnsObjects = True)
 
 ## 📌 Compatibility
 This has been tested with:

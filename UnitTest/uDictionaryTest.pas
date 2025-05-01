@@ -208,6 +208,142 @@ type
     procedure TestMany;
   end;
 
+  TTestObject2 = class
+  private
+    FId: Integer;
+  public
+    constructor Create(AValue: Integer);
+    property ID: Integer read FId;
+  end;
+
+  [TestFixture]
+  TObjectDictionaryIOTest = class
+  private
+    FDictionary: TObjectDictionary<Integer, TTestObject2>;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+    [Test]
+    procedure TestRemove;
+    [Test]
+    procedure TestFind;
+    [Test]
+    procedure TestFindOrAdd;
+    [Test]
+    procedure TestExtractPair;
+    [Test]
+    procedure TestTryGetValue;
+    [Test]
+    procedure TestAddOrSetValue;
+    [Test]
+    procedure TestContainsKey;
+    [Test]
+    procedure TestMany;
+  end;
+
+  TCustomObjectDictionary = class(TObjectDictionary<Integer, TTestObject2>)
+  protected
+    procedure KeyNotify(const Key: Integer; Action: TCollectionNotification); override;
+    procedure ValueNotify(const Value: TTestObject2; Action: TCollectionNotification); override;
+  end;
+
+  [TestFixture]
+  TCustomObjectDictionaryIOTest = class
+  private
+    FDictionary: TCustomObjectDictionary;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+    [Test]
+    procedure TestRemove;
+    [Test]
+    procedure TestFind;
+    [Test]
+    procedure TestFindOrAdd;
+    [Test]
+    procedure TestExtractPair;
+    [Test]
+    procedure TestTryGetValue;
+    [Test]
+    procedure TestAddOrSetValue;
+    [Test]
+    procedure TestContainsKey;
+    [Test]
+    procedure TestMany;
+  end;
+
+  [TestFixture]
+  TObjectDictionaryOITest = class
+  private
+    FDictionary: TObjectDictionary<TTestObject2, Integer>;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+    [Test]
+    procedure TestRemove;
+    [Test]
+    procedure TestFind;
+    [Test]
+    procedure TestFindOrAdd;
+    [Test]
+    procedure TestExtractPair;
+    [Test]
+    procedure TestTryGetValue;
+    [Test]
+    procedure TestAddOrSetValue;
+    [Test]
+    procedure TestContainsKey;
+    [Test]
+    procedure TestMany;
+  end;
+
+  TCustomObjectDictionary2 = class(TObjectDictionary<TTestObject2, Integer>)
+  protected
+    procedure KeyNotify(const Key: TTestObject2; Action: TCollectionNotification); override;
+    procedure ValueNotify(const Value: Integer; Action: TCollectionNotification); override;
+  end;
+
+  [TestFixture]
+  TCustomObjectDictionaryOITest = class
+  private
+    FDictionary: TCustomObjectDictionary2;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+    [Test]
+    procedure TestRemove;
+    [Test]
+    procedure TestFind;
+    [Test]
+    procedure TestFindOrAdd;
+    [Test]
+    procedure TestExtractPair;
+    [Test]
+    procedure TestTryGetValue;
+    [Test]
+    procedure TestAddOrSetValue;
+    [Test]
+    procedure TestContainsKey;
+    [Test]
+    procedure TestMany;
+  end;
+
 implementation
 
 uses
@@ -833,6 +969,580 @@ end;
 
 {$ENDREGION 'TDictionaryIIntfTest'}
 
+{ TTestObject2 }
+
+constructor TTestObject2.Create(AValue: Integer);
+begin
+  FID := AValue;
+end;
+
+{ TObjectDictionaryIOTest }   // Owns Values
+
+procedure TObjectDictionaryIOTest.Setup;
+begin
+  // Create dictionary with ownership of values
+  FDictionary := TObjectDictionary<Integer, TTestObject2>.Create([doOwnsValues]);
+end;
+
+procedure TObjectDictionaryIOTest.TearDown;
+begin
+  FreeAndNil(FDictionary);
+end;
+
+procedure TObjectDictionaryIOTest.TestAdd;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(1, Obj);
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(11, FDictionary.Items[1].ID);
+end;
+
+procedure TObjectDictionaryIOTest.TestRemove;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(1, Obj);
+  FDictionary.Remove(1); // Dictionary frees the object
+  Assert.IsFalse(FDictionary.ContainsKey(1));
+end;
+
+procedure TObjectDictionaryIOTest.TestFind;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(1, Obj);
+  Assert.IsNotNull(FDictionary.Items[1]);
+  Assert.AreEqual(11, FDictionary.Items[1].ID);
+end;
+
+procedure TObjectDictionaryIOTest.TestFindOrAdd;
+var
+  Obj: TTestObject2;
+begin
+  // Since FindOrAdd doesn't exist in Delphi's TDictionary, simulate it
+  if not FDictionary.TryGetValue(2, Obj) then
+  begin
+    Obj := TTestObject2.Create(22);
+    FDictionary.Add(2, Obj);
+  end;
+  Assert.IsNotNull(Obj);
+  Assert.AreEqual(22, FDictionary.Items[2].ID);
+end;
+
+procedure TObjectDictionaryIOTest.TestExtractPair;
+var
+  Obj: TTestObject2;
+  Pair: TPair<Integer, TTestObject2>;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(3, Obj);
+  Pair := FDictionary.ExtractPair(3); // Extracted object is not freed
+  Assert.AreEqual(3, Pair.Key);
+  Assert.AreEqual(11, Pair.Value.ID);
+  Assert.IsFalse(FDictionary.ContainsKey(3));
+  Pair.Value.Free; // Manually free extracted object
+end;
+
+procedure TObjectDictionaryIOTest.TestTryGetValue;
+var
+  Obj: TTestObject2;
+  Value: TTestObject2;
+begin
+  Obj := TTestObject2.Create(44);
+  FDictionary.Add(4, Obj);
+  Assert.IsTrue(FDictionary.TryGetValue(4, Value));
+  Assert.AreEqual(44, Value.ID);
+end;
+
+procedure TObjectDictionaryIOTest.TestAddOrSetValue;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(55);
+  FDictionary.AddOrSetValue(5, Obj);
+  Assert.AreEqual(55, FDictionary.Items[5].ID);
+  Obj := TTestObject2.Create(56);
+  FDictionary.AddOrSetValue(5, Obj); // Previous object is freed by dictionary
+  Assert.AreEqual(56, FDictionary.Items[5].ID);
+end;
+
+procedure TObjectDictionaryIOTest.TestContainsKey;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(66);
+  FDictionary.Add(6, Obj);
+  Assert.IsTrue(FDictionary.ContainsKey(6));
+  Assert.IsFalse(FDictionary.ContainsKey(7));
+end;
+
+procedure TObjectDictionaryIOTest.TestMany;
+const
+  ItemCount = 100000;
+var
+  I: Integer;
+  Value: TTestObject2;
+  Obj: TTestObject2;
+begin
+  // Add items
+  for I := 1 to ItemCount do
+  begin
+    Obj := TTestObject2.Create(I * 10 + I);
+    FDictionary.Add(I, Obj);
+  end;
+  Assert.AreEqual(ItemCount, FDictionary.Count);
+
+  // Verify all items exist
+  for I := 1 to ItemCount do
+  begin
+    Assert.IsTrue(FDictionary.TryGetValue(I, Value));
+    Assert.AreEqual(I * 10 + I, Value.ID);
+  end;
+
+  // Remove all items (dictionary frees objects)
+  for I := 1 to ItemCount do
+    FDictionary.Remove(I);
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+{ TCustomObjectDictionary }
+
+procedure TCustomObjectDictionary.KeyNotify(const Key: Integer;
+  Action: TCollectionNotification);
+begin
+  // Just need a different method
+  inherited;
+end;
+
+procedure TCustomObjectDictionary.ValueNotify(const Value: TTestObject2;
+  Action: TCollectionNotification);
+begin
+  // Just need a different method
+  inherited;
+end;
+
+{ TCustomObjectDictionaryIOTest }  // Owns Values, overriden KeyNotify and ValueNotify
+
+procedure TCustomObjectDictionaryIOTest.Setup;
+begin
+  // Create dictionary with ownership of values
+  FDictionary := TCustomObjectDictionary.Create([doOwnsValues]);
+end;
+
+procedure TCustomObjectDictionaryIOTest.TearDown;
+begin
+  FreeAndNil(FDictionary);
+end;
+
+procedure TCustomObjectDictionaryIOTest.TestAdd;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(1, Obj);
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(11, FDictionary.Items[1].ID);
+end;
+
+procedure TCustomObjectDictionaryIOTest.TestRemove;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(1, Obj);
+  FDictionary.Remove(1); // Dictionary frees the object
+  Assert.IsFalse(FDictionary.ContainsKey(1));
+end;
+
+procedure TCustomObjectDictionaryIOTest.TestFind;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(1, Obj);
+  Assert.IsNotNull(FDictionary.Items[1]);
+  Assert.AreEqual(11, FDictionary.Items[1].ID);
+end;
+
+procedure TCustomObjectDictionaryIOTest.TestFindOrAdd;
+var
+  Obj: TTestObject2;
+begin
+  // Since FindOrAdd doesn't exist in Delphi's TDictionary, simulate it
+  if not FDictionary.TryGetValue(2, Obj) then
+  begin
+    Obj := TTestObject2.Create(22);
+    FDictionary.Add(2, Obj);
+  end;
+  Assert.IsNotNull(Obj);
+  Assert.AreEqual(22, FDictionary.Items[2].ID);
+end;
+
+procedure TCustomObjectDictionaryIOTest.TestExtractPair;
+var
+  Obj: TTestObject2;
+  Pair: TPair<Integer, TTestObject2>;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(3, Obj);
+  Pair := FDictionary.ExtractPair(3); // Extracted object is not freed
+  Assert.AreEqual(3, Pair.Key);
+  Assert.AreEqual(11, Pair.Value.ID);
+  Assert.IsFalse(FDictionary.ContainsKey(3));
+  Pair.Value.Free; // Manually free extracted object
+end;
+
+procedure TCustomObjectDictionaryIOTest.TestTryGetValue;
+var
+  Obj: TTestObject2;
+  Value: TTestObject2;
+begin
+  Obj := TTestObject2.Create(44);
+  FDictionary.Add(4, Obj);
+  Assert.IsTrue(FDictionary.TryGetValue(4, Value));
+  Assert.AreEqual(44, Value.ID);
+end;
+
+procedure TCustomObjectDictionaryIOTest.TestAddOrSetValue;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(55);
+  FDictionary.AddOrSetValue(5, Obj);
+  Assert.AreEqual(55, FDictionary.Items[5].ID);
+  Obj := TTestObject2.Create(56);
+  FDictionary.AddOrSetValue(5, Obj); // Previous object is freed by dictionary
+  Assert.AreEqual(56, FDictionary.Items[5].ID);
+end;
+
+procedure TCustomObjectDictionaryIOTest.TestContainsKey;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(66);
+  FDictionary.Add(6, Obj);
+  Assert.IsTrue(FDictionary.ContainsKey(6));
+  Assert.IsFalse(FDictionary.ContainsKey(7));
+end;
+
+procedure TCustomObjectDictionaryIOTest.TestMany;
+const
+  ItemCount = 100000;
+var
+  I: Integer;
+  Value: TTestObject2;
+  Obj: TTestObject2;
+begin
+  // Add items
+  for I := 1 to ItemCount do
+  begin
+    Obj := TTestObject2.Create(I * 10 + I);
+    FDictionary.Add(I, Obj);
+  end;
+  Assert.AreEqual(ItemCount, FDictionary.Count);
+
+  // Verify all items exist
+  for I := 1 to ItemCount do
+  begin
+    Assert.IsTrue(FDictionary.TryGetValue(I, Value));
+    Assert.AreEqual(I * 10 + I, Value.ID);
+  end;
+
+  // Remove all items (dictionary frees objects)
+  for I := 1 to ItemCount do
+    FDictionary.Remove(I);
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+{ TObjectDictionaryOITest }  // Owns keys
+
+procedure TObjectDictionaryOITest.Setup;
+begin
+  // Create dictionary with ownership of keys
+  FDictionary := TObjectDictionary<TTestObject2, Integer>.Create([doOwnsKeys]);
+end;
+
+procedure TObjectDictionaryOITest.TearDown;
+begin
+  FreeAndNil(FDictionary);
+end;
+
+procedure TObjectDictionaryOITest.TestAdd;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(Obj, 1);
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(1, FDictionary.Items[Obj]);
+end;
+
+procedure TObjectDictionaryOITest.TestRemove;
+var
+  Obj: TTestObject2;
+  Ptr: Pointer;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(Obj, 1);
+  Ptr := Obj;
+  FDictionary.Remove(Obj); // Dictionary frees the object
+
+  Assert.IsTrue(FDictionary.Count = 0);
+end;
+
+procedure TObjectDictionaryOITest.TestFind;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(Obj, 1);
+  Assert.AreEqual(1, FDictionary.Items[Obj]);
+end;
+
+procedure TObjectDictionaryOITest.TestFindOrAdd;
+var
+  Obj: TTestObject2;
+  Value: Integer;
+begin
+  Obj := TTestObject2.Create(22);
+  if not FDictionary.TryGetValue(Obj, Value) then
+    FDictionary.Add(Obj, 2);
+  Assert.IsTrue(FDictionary.TryGetValue(Obj, Value));
+  Assert.AreEqual(2, Value);
+end;
+
+procedure TObjectDictionaryOITest.TestExtractPair;
+var
+  Obj: TTestObject2;
+  Pair: TPair<TTestObject2, Integer>;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(Obj, 3);
+  Pair := FDictionary.ExtractPair(Obj); // Extracted key is not freed
+  Assert.AreEqual(3, Pair.Value);
+  Assert.AreEqual(11, Pair.Key.ID);
+  Assert.IsFalse(FDictionary.ContainsKey(Pair.Key));
+  Pair.Key.Free; // Manually free extracted key
+end;
+
+procedure TObjectDictionaryOITest.TestTryGetValue;
+var
+  Obj: TTestObject2;
+  Value: Integer;
+begin
+  Obj := TTestObject2.Create(44);
+  FDictionary.Add(Obj, 4);
+  Assert.IsTrue(FDictionary.TryGetValue(Obj, Value));
+  Assert.AreEqual(4, Value);
+end;
+
+procedure TObjectDictionaryOITest.TestAddOrSetValue;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(55);
+  FDictionary.AddOrSetValue(Obj, 5);
+  Assert.AreEqual(5, FDictionary.Items[Obj]);
+
+  Obj := TTestObject2.Create(56);
+  FDictionary.AddOrSetValue(Obj, 6); // Previous key is freed
+  Assert.AreEqual(6, FDictionary.Items[Obj]);
+end;
+
+procedure TObjectDictionaryOITest.TestContainsKey;
+var
+  Obj1, Obj2: TTestObject2;
+begin
+  Obj1 := TTestObject2.Create(66);
+  Obj2 := TTestObject2.Create(77);
+  FDictionary.Add(Obj1, 6);
+  Assert.IsTrue(FDictionary.ContainsKey(Obj1));
+  Assert.IsFalse(FDictionary.ContainsKey(Obj2));
+  Obj2.Free;
+end;
+
+procedure TObjectDictionaryOITest.TestMany;
+const
+  ItemCount = 100000;
+var
+  I: Integer;
+  Obj: TTestObject2;
+  Value: Integer;
+begin
+  // Add items
+  for I := 1 to ItemCount do
+  begin
+    Obj := TTestObject2.Create(I * 10 + I);
+    FDictionary.Add(Obj, I);
+  end;
+  Assert.AreEqual(ItemCount, FDictionary.Count);
+
+  // Verify all items exist
+  for Obj in FDictionary.Keys do
+  begin
+    Assert.IsTrue(FDictionary.TryGetValue(Obj, Value));
+    Assert.AreEqual(Obj.ID, Value * 10 + Value);
+  end;
+
+  // Remove all items (dictionary frees keys)
+  for Obj in FDictionary.Keys.ToArray do
+    FDictionary.Remove(Obj);
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+{ TCustomObjectDictionary2 }
+
+procedure TCustomObjectDictionary2.KeyNotify(const Key: TTestObject2;
+  Action: TCollectionNotification);
+begin
+  inherited;
+end;
+
+procedure TCustomObjectDictionary2.ValueNotify(const Value: Integer;
+  Action: TCollectionNotification);
+begin
+  inherited;
+end;
+
+{ TCustomObjectDictionaryOITest }  // Owns keys, overrides KeyNotify and ValueNotify
+
+procedure TCustomObjectDictionaryOITest.Setup;
+begin
+  // Create dictionary with ownership of keys
+  FDictionary := TCustomObjectDictionary2.Create([doOwnsKeys]);
+end;
+
+procedure TCustomObjectDictionaryOITest.TearDown;
+begin
+  FreeAndNil(FDictionary);
+end;
+
+procedure TCustomObjectDictionaryOITest.TestAdd;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(Obj, 1);
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(1, FDictionary.Items[Obj]);
+end;
+
+procedure TCustomObjectDictionaryOITest.TestRemove;
+var
+  Obj: TTestObject2;
+  Ptr: Pointer;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(Obj, 1);
+  Ptr := Obj;
+  FDictionary.Remove(Obj); // Dictionary frees the object
+
+  Assert.IsTrue(FDictionary.Count = 0);
+end;
+
+procedure TCustomObjectDictionaryOITest.TestFind;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(Obj, 1);
+  Assert.AreEqual(1, FDictionary.Items[Obj]);
+end;
+
+procedure TCustomObjectDictionaryOITest.TestFindOrAdd;
+var
+  Obj: TTestObject2;
+  Value: Integer;
+begin
+  Obj := TTestObject2.Create(22);
+  if not FDictionary.TryGetValue(Obj, Value) then
+    FDictionary.Add(Obj, 2);
+  Assert.IsTrue(FDictionary.TryGetValue(Obj, Value));
+  Assert.AreEqual(2, Value);
+end;
+
+procedure TCustomObjectDictionaryOITest.TestExtractPair;
+var
+  Obj: TTestObject2;
+  Pair: TPair<TTestObject2, Integer>;
+begin
+  Obj := TTestObject2.Create(11);
+  FDictionary.Add(Obj, 3);
+  Pair := FDictionary.ExtractPair(Obj); // Extracted key is not freed
+  Assert.AreEqual(3, Pair.Value);
+  Assert.AreEqual(11, Pair.Key.ID);
+  Assert.IsFalse(FDictionary.ContainsKey(Pair.Key));
+  Pair.Key.Free; // Manually free extracted key
+end;
+
+procedure TCustomObjectDictionaryOITest.TestTryGetValue;
+var
+  Obj: TTestObject2;
+  Value: Integer;
+begin
+  Obj := TTestObject2.Create(44);
+  FDictionary.Add(Obj, 4);
+  Assert.IsTrue(FDictionary.TryGetValue(Obj, Value));
+  Assert.AreEqual(4, Value);
+end;
+
+procedure TCustomObjectDictionaryOITest.TestAddOrSetValue;
+var
+  Obj: TTestObject2;
+begin
+  Obj := TTestObject2.Create(55);
+  FDictionary.AddOrSetValue(Obj, 5);
+  Assert.AreEqual(5, FDictionary.Items[Obj]);
+
+  Obj := TTestObject2.Create(56);
+  FDictionary.AddOrSetValue(Obj, 6); // Previous key is freed
+  Assert.AreEqual(6, FDictionary.Items[Obj]);
+end;
+
+procedure TCustomObjectDictionaryOITest.TestContainsKey;
+var
+  Obj1, Obj2: TTestObject2;
+begin
+  Obj1 := TTestObject2.Create(66);
+  Obj2 := TTestObject2.Create(77);
+  FDictionary.Add(Obj1, 6);
+  Assert.IsTrue(FDictionary.ContainsKey(Obj1));
+  Assert.IsFalse(FDictionary.ContainsKey(Obj2));
+  Obj2.Free;
+end;
+
+procedure TCustomObjectDictionaryOITest.TestMany;
+const
+  ItemCount = 100000;
+var
+  I: Integer;
+  Obj: TTestObject2;
+  Value: Integer;
+begin
+  // Add items
+  for I := 1 to ItemCount do
+  begin
+    Obj := TTestObject2.Create(I * 10 + I);
+    FDictionary.Add(Obj, I);
+  end;
+  Assert.AreEqual(ItemCount, FDictionary.Count);
+
+  // Verify all items exist
+  for Obj in FDictionary.Keys do
+  begin
+    Assert.IsTrue(FDictionary.TryGetValue(Obj, Value));
+    Assert.AreEqual(Obj.ID, Value * 10 + Value);
+  end;
+
+  // Remove all items (dictionary frees keys)
+  for Obj in FDictionary.Keys.ToArray do
+    FDictionary.Remove(Obj);
+  Assert.AreEqual(0, FDictionary.Count);
+end;
 
 initialization
   TDUnitX.RegisterTestFixture(TDictionaryISTest);
@@ -841,6 +1551,10 @@ initialization
   TDUnitX.RegisterTestFixture(TDictionaryIDTest);
   TDUnitX.RegisterTestFixture(TDictionaryIPTest);
   TDUnitX.RegisterTestFixture(TDictionaryIIntfTest);
+  TDUnitX.RegisterTestFixture(TObjectDictionaryIOTest);
+  TDUnitX.RegisterTestFixture(TCustomObjectDictionaryIOTest);
+  TDUnitX.RegisterTestFixture(TObjectDictionaryOITest);
+  TDUnitX.RegisterTestFixture(TCustomObjectDictionaryOITest);
 
 end.
 

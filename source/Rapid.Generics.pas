@@ -2030,8 +2030,10 @@ type
       TOnValueNotify = procedure(Data, Sender: TObject; const Value: TObject; Action: TCollectionNotification);
   protected
     FOwnerships: TDictionaryOwnerships;
+    procedure DisposeKeyNotifyCaller(Sender: TObject; const Key: TKey; Action: TCollectionNotification);
     procedure DisposeKeyEvent(Sender: TObject; const Key: TObject; Action: TCollectionNotification);
     procedure DisposeKeyOnly(Sender: TObject; const Key: TObject; Action: TCollectionNotification);
+    procedure DisposeValueNotifyCaller(Sender: TObject; const Value: TValue; Action: TCollectionNotification);
     procedure DisposeValueEvent(Sender: TObject; const Value: TObject; Action: TCollectionNotification);
     procedure DisposeValueOnly(Sender: TObject; const Value: TObject; Action: TCollectionNotification);
     procedure DisposeItemNotifyKeyCaller(const Item: TItem; Action: TCollectionNotification);
@@ -15606,6 +15608,7 @@ begin
   begin
     if Assigned(FInternalValueNotify) then
     begin
+      // Both KeyNotify() and ValueNotify() are overriden
       if (TMethod(FInternalItemNotify).Code = @TCustomDictionary<TKey,TValue>.ItemNotifyCaller) then
       begin
         for i := 1 to Count do
@@ -22486,8 +22489,10 @@ constructor TObjectDictionary<TKey,TValue>.Create(Ownerships: TDictionaryOwnersh
   ACapacity: Integer; const AComparer: IEqualityComparer<TKey>);
 begin
   FOwnerships := Ownerships;
-  if (Ownerships = []) then
-    raise EInvalidCast.CreateRes(Pointer(@SInvalidCast));
+  // AM: Although creating a TObjectDictionary without any ownership is pointless
+  // (because a TDictionary<TKey, TValue> would do the same), it shouldn't be forbidden
+  //if (Ownerships = []) then
+  //  raise EInvalidCast.CreateRes(Pointer(@SInvalidCast));
 
   if (doOwnsKeys in Ownerships) then
   begin
@@ -22525,6 +22530,24 @@ begin
   TOnValueNotify(TMethod(FOnValueNotify).Code)(TMethod(FOnValueNotify).Data, Self, Value, Action);
   if (Action = cnRemoved) then
     Value.{$ifdef NEXTGEN}DisposeOf{$else}Free{$endif};
+end;
+
+procedure TObjectDictionary<TKey,TValue>.DisposeKeyNotifyCaller(Sender: TObject;
+  const Key: TKey; Action: TCollectionNotification);
+begin
+  Self.KeyNotify(Key, Action);
+  // Key is guaranteed to be a class when FInternalKeyNotify = DisposeKeyNotifyCaller (See SetNotifyMethods)
+  if (Action = cnRemoved) then
+    TObject(Pointer(@Key)^).{$ifdef NEXTGEN}DisposeOf{$else}Free{$endif};
+end;
+
+procedure TObjectDictionary<TKey,TValue>.DisposeValueNotifyCaller(Sender: TObject;
+  const Value: TValue; Action: TCollectionNotification);
+begin
+  Self.ValueNotify(Value, Action);
+  // Value is guaranteed to be a class when FInternalKeyNotify = DisposeKeyNotifyCaller (See SetNotifyMethods)
+  if (Action = cnRemoved) then
+    TObject(Pointer(@Value)^).{$ifdef NEXTGEN}DisposeOf{$else}Free{$endif};
 end;
 
 procedure TObjectDictionary<TKey,TValue>.DisposeValueOnly(Sender: TObject;
@@ -22586,7 +22609,11 @@ begin
   VMTKeyNotify := Self.KeyNotify;
   if (TMethod(VMTKeyNotify).Code <> @TCustomDictionary<TKey,TValue>.KeyNotify) then
   begin
-    TMethod(FInternalKeyNotify).Code := @TCustomDictionary<TKey,TValue>.KeyNotifyCaller;
+    if (doOwnsKeys in FOwnerships) then
+      // AM: Fix: when doOwnsKeys, need to free keys in descendant classes with overriden notify method
+      TMethod(FInternalKeyNotify).Code := @TObjectDictionary<TKey,TValue>.DisposeKeyNotifyCaller
+    else
+      TMethod(FInternalKeyNotify).Code := @TCustomDictionary<TKey,TValue>.KeyNotifyCaller;
   end else
   if (doOwnsKeys in FOwnerships) then
   begin
@@ -22607,7 +22634,11 @@ begin
   VMTValueNotify := Self.ValueNotify;
   if (TMethod(VMTValueNotify).Code <> @TCustomDictionary<TKey,TValue>.ValueNotify) then
   begin
-    TMethod(FInternalValueNotify).Code := @TCustomDictionary<TKey,TValue>.ValueNotifyCaller;
+    if (doOwnsValues in FOwnerships) then
+      // AM: Fix: when doOwnsValues, need to free keys in descendant classes with overriden notify method
+      TMethod(FInternalValueNotify).Code := @TObjectDictionary<TKey,TValue>.DisposeValueNotifyCaller
+    else
+      TMethod(FInternalValueNotify).Code := @TCustomDictionary<TKey,TValue>.ValueNotifyCaller;
   end else
   if (doOwnsValues in FOwnerships) then
   begin
@@ -22626,9 +22657,13 @@ begin
   // FInternalItemNotify
   TMethod(FInternalItemNotify).Data := Self;
   if (TMethod(VMTKeyNotify).Code <> @TCustomDictionary<TKey,TValue>.KeyNotify) and
-    (TMethod(VMTValueNotify).Code <> @TCustomDictionary<TKey,TValue>.ValueNotify) then
+    (TMethod(VMTValueNotify).Code <> @TCustomDictionary<TKey,TValue>.ValueNotify) then   // Both KeyNotify() and ValueNotify() are overriden
   begin
-    TMethod(FInternalItemNotify).Code := @TCustomDictionary<TKey,TValue>.ItemNotifyCaller;
+    // AM: Fix: when doOwnsKeys or doOwnsValues in descendant classes with overriden notify method
+    if (doOwnsKeys in FOwnerships) or (doOwnsValues in FOwnerships) then
+      TMethod(FInternalItemNotify).Code := @TObjectDictionary<TKey,TValue>.ItemNotifyEvents
+    else
+      TMethod(FInternalItemNotify).Code := @TCustomDictionary<TKey,TValue>.ItemNotifyCaller;
   end else
   if (Assigned(FInternalKeyNotify)) and (Assigned(FInternalValueNotify)) then
   begin
