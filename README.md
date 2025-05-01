@@ -38,7 +38,6 @@ The original library could not be used in a real application due to several issu
 * Implemented missing method: `TryAdd`
 
 ### 📌 TObjectDictionary<> Improvements
-* Implemented missing method: `TryAdd`
 * Fixed memory leaks when overriding KeyNotify()/ValueNotify() in descendant classes (doOwnsKeys or doOwnsValues)
 
 ### 📌 TList<> Improvements
@@ -49,9 +48,6 @@ The original library could not be used in a real application due to several issu
   * QuickSort corner cases fixed, preventing infinite loops due to improper index bounds during pivot selection
   * Removed `RadixSort` and `Insertion` routines (both failed basic unit tests). Plans to revisit this topic in the near future
   * Fixed `SortDescending()` methods
-
-### 📌 TObjectList<> Improvements
-* Fixed memory leaks when overriding Notify() in descendant classes (OwnsObjects = True)
 
 ## 📌 Compatibility
 This has been tested with:
