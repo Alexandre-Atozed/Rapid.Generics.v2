@@ -57,8 +57,8 @@ This has been tested with:
 
 ## 📌 Dependencies
 * No external dependencies
-* Unit test project requires [DUnitX](https://github.com/VSoftTechnologies/DUnitX/tree/master) framework
-* Checking memory leaks require FastMM4 (included in the 3rd party folder)
+* Unit test project requires [DUnitX](https://github.com/VSoftTechnologies/DUnitX/tree/master) framework. (Included in 3rdParty folder)
+* Unit test memory leak check requires FastMM4 (also included in 3rdParty folder)
 
 ## 📌 How to Use
 1. Include `Rapid.Generics.pas` in your project.  
