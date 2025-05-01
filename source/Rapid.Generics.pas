@@ -1999,7 +1999,6 @@ type
   public
     constructor Create(AOwnsObjects: Boolean = True); overload;
     constructor Create(const Collection: TEnumerable<T>; AOwnsObjects: Boolean = True); overload;
-    procedure Pop;
     property OwnsObjects: Boolean read FOwnsObjects write SetOwnsObjects;
   end;
 
@@ -22331,11 +22330,6 @@ constructor TObjectStack<T>.Create(const Collection: TEnumerable<T>; AOwnsObject
 begin
   OwnsObjects := AOwnsObjects;
   inherited Create(Collection);
-end;
-
-procedure TObjectStack<T>.Pop;
-begin
-  inherited Pop;
 end;
 
 procedure TObjectStack<T>.SetOwnsObjects(const Value: Boolean);

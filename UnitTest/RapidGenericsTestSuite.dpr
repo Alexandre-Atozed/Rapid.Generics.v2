@@ -50,7 +50,8 @@ uses
   uListTest in 'uListTest.pas',
   uDictionaryTest in 'uDictionaryTest.pas',
   uStackTest in 'uStackTest.pas',
-  uQueueTest in 'uQueueTest.pas';
+  uQueueTest in 'uQueueTest.pas',
+  uTestTypes in 'uTestTypes.pas';
 
 {$R *.res}
 

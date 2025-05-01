@@ -22,7 +22,8 @@ uses
   System.Generics.Collections,
   System.Generics.Defaults,
 {$ENDIF}
-  DUnitX.TestFramework;
+  DUnitX.TestFramework,
+  uTestTypes;
 
 type
   TListHelper<T> = class
@@ -385,22 +386,15 @@ type
 
   {$IFDEF TEST_OBJECTLIST}
 
-  TMyObject = class
+  TObjectListTestObjectComparer = class(TInterfacedObject, IComparer<TTestObject>)
   public
-    ID: Integer;
-    constructor Create(AID: Integer);
-    destructor Destroy; override;
-  end;
-
-  TObjectListTestObjectComparer = class(TInterfacedObject, IComparer<TMyObject>)
-  public
-    function Compare(const Left, Right: TMyObject): Integer;
+    function Compare(const Left, Right: TTestObject): Integer;
   end;
 
   [TestFixture]
   TObjectListTestObject = class
   private
-    FList: TObjectList<TMyObject>;
+    FList: TObjectList<TTestObject>;
   public
     [Setup]
     procedure Setup;
@@ -434,15 +428,15 @@ type
     procedure TestHuge;
   end;
 
-  TMyObjectList = class(TObjectList<TMyObject>)
+  TTestObjectList = class(TObjectList<TTestObject>)
   protected
-    procedure Notify(const Item: TMyObject; Action: TCollectionNotification); override;
+    procedure Notify(const Item: TTestObject; Action: TCollectionNotification); override;
   end;
 
   [TestFixture]
   TObjectListDescendantTestObject = class
   private
-    FList: TMyObjectList;
+    FList: TTestObjectList;
   public
     [Setup]
     procedure Setup;
@@ -2430,27 +2424,14 @@ end;
 
 {$EndRegion 'TList<TTestRecord> Tests'}
 
-{$Region 'TObjectList<TMyObject> Tests'}
+{$Region 'TObjectList<TTestObject> Tests'}
 
 {$IFDEF TEST_OBJECTLIST}
-
-{ TMyObject }
-
-constructor TMyObject.Create(AID: Integer);
-begin
-  inherited Create;
-  ID := AID;
-end;
-
-destructor TMyObject.Destroy;
-begin
-  inherited;
-end;
 
 { TObjectListTestObjectComparer }
 
 function TObjectListTestObjectComparer.Compare(const Left,
-  Right: TMyObject): Integer;
+  Right: TTestObject): Integer;
 begin
   if (Left = nil) then
   begin
@@ -2470,10 +2451,10 @@ end;
 
 procedure TObjectListTestObject.Setup;
 var
-  Comparer: IComparer<TMyObject>;
+  Comparer: IComparer<TTestObject>;
 begin
   Comparer := TObjectListTestObjectComparer.Create;
-  FList := TObjectList<TMyObject>.Create(Comparer);
+  FList := TObjectList<TTestObject>.Create(Comparer);
 end;
 
 procedure TObjectListTestObject.TearDown;
@@ -2483,17 +2464,17 @@ end;
 
 procedure TObjectListTestObject.TestAdd;
 begin
-  FList.Add(TMyObject.Create(10));
+  FList.Add(TTestObject.Create(10));
   Assert.AreEqual(1, FList.Count);
   Assert.AreEqual(10, FList[0].ID);
 end;
 
 procedure TObjectListTestObject.TestRemove;
 var
-  Obj10, Obj20: TMyObject;
+  Obj10, Obj20: TTestObject;
 begin
-  Obj10 := TMyObject.Create(10);
-  Obj20 := TMyObject.Create(20);
+  Obj10 := TTestObject.Create(10);
+  Obj20 := TTestObject.Create(20);
   FList.Add(Obj10);
   FList.Add(Obj20);
   Assert.AreEqual(2, FList.Count);
@@ -2504,9 +2485,9 @@ end;
 
 procedure TObjectListTestObject.TestDelete;
 begin
-  FList.Add(TMyObject.Create(10));
-  FList.Add(TMyObject.Create(20));
-  FList.Add(TMyObject.Create(30));
+  FList.Add(TTestObject.Create(10));
+  FList.Add(TTestObject.Create(20));
+  FList.Add(TTestObject.Create(30));
   Assert.AreEqual(3, FList.Count);
   FList.Delete(0);
   Assert.AreEqual(2, FList.Count);
@@ -2520,17 +2501,17 @@ end;
 
 procedure TObjectListTestObject.TestClear;
 begin
-  FList.Add(TMyObject.Create(1));
-  FList.Add(TMyObject.Create(2));
-  FList.Add(TMyObject.Create(3));
+  FList.Add(TTestObject.Create(1));
+  FList.Add(TTestObject.Create(2));
+  FList.Add(TTestObject.Create(3));
   FList.Clear;
   Assert.AreEqual(0, FList.Count);
 end;
 
 procedure TObjectListTestObject.TestInsert;
 begin
-  FList.Add(TMyObject.Create(10));
-  FList.Insert(0, TMyObject.Create(5));
+  FList.Add(TTestObject.Create(10));
+  FList.Insert(0, TTestObject.Create(5));
   Assert.AreEqual(2, FList.Count);
   Assert.AreEqual(5, FList[0].ID);
   Assert.AreEqual(10, FList[1].ID);
@@ -2538,13 +2519,13 @@ end;
 
 procedure TObjectListTestObject.TestContains;
 var
-  Obj: TMyObject;
-  TestObj: TMyObject;
+  Obj: TTestObject;
+  TestObj: TTestObject;
 begin
-  Obj := TMyObject.Create(42);
+  Obj := TTestObject.Create(42);
   FList.Add(Obj);
   Assert.IsTrue(FList.Contains(Obj));
-  TestObj := TMyObject.Create(99);
+  TestObj := TTestObject.Create(99);
   Assert.IsFalse(FList.Contains(TestObj)); // not added
   TestObj.Free;
 end;
@@ -2552,18 +2533,18 @@ end;
 procedure TObjectListTestObject.TestCount;
 begin
   Assert.AreEqual(0, FList.Count);
-  FList.Add(TMyObject.Create(100));
+  FList.Add(TTestObject.Create(100));
   Assert.AreEqual(1, FList.Count);
-  FList.Add(TMyObject.Create(200));
+  FList.Add(TTestObject.Create(200));
   Assert.AreEqual(2, FList.Count);
 end;
 
 procedure TObjectListTestObject.TestSetOwnsObjects;
 var
-  Obj10, Obj20: TMyObject;
+  Obj10, Obj20: TTestObject;
 begin
-  Obj10 := TMyObject.Create(10);
-  Obj20 := TMyObject.Create(20);
+  Obj10 := TTestObject.Create(10);
+  Obj20 := TTestObject.Create(20);
   // change OwnsObjects
   FList.OwnsObjects := False;
   FList.Add(Obj10);
@@ -2586,11 +2567,11 @@ end;
 
 procedure TObjectListTestObject.TestPack;
 begin
-  FList.Add(TMyObject.Create(1));
+  FList.Add(TTestObject.Create(1));
   FList.Add(nil);
-  FList.Add(TMyObject.Create(2));
+  FList.Add(TTestObject.Create(2));
   FList.Add(nil);
-  FList.Add(TMyObject.Create(3));
+  FList.Add(TTestObject.Create(3));
 
   FList.Pack;
 
@@ -2603,24 +2584,24 @@ end;
 procedure TObjectListTestObject.TestAddRange;
 begin
   FList.AddRange([
-    TMyObject.Create(4),
-    TMyObject.Create(5),
-    TMyObject.Create(6)
+    TTestObject.Create(4),
+    TTestObject.Create(5),
+    TTestObject.Create(6)
   ]);
   Assert.AreEqual(3, FList.Count);
 
   FList.AddRange([
-    TMyObject.Create(1),
-    TMyObject.Create(2),
-    TMyObject.Create(3)
+    TTestObject.Create(1),
+    TTestObject.Create(2),
+    TTestObject.Create(3)
   ]);
   Assert.AreEqual(6, FList.Count);
 
   FList.AddRange([
-    TMyObject.Create(7),
-    TMyObject.Create(8),
-    TMyObject.Create(9),
-    TMyObject.Create(10)
+    TTestObject.Create(7),
+    TTestObject.Create(8),
+    TTestObject.Create(9),
+    TTestObject.Create(10)
   ]);
   Assert.AreEqual(10, FList.Count);
 end;
@@ -2630,7 +2611,7 @@ var
   I: Integer;
 begin
   for I := 1 to 10 do
-    FList.Add(TMyObject.Create(I));
+    FList.Add(TTestObject.Create(I));
 
   FList.DeleteRange(3, 4); // Deletes items at index 3..6
 
@@ -2651,7 +2632,7 @@ var
   I: Integer;
 begin
   for I := 1 to Count do
-    FList.Add(TMyObject.Create(I));
+    FList.Add(TTestObject.Create(I));
 
   Assert.AreEqual(Count, FList.Count);
 
@@ -2666,7 +2647,7 @@ var
   I: Integer;
 begin
   for I := 1 to Count do
-    FList.Add(TMyObject.Create(I));
+    FList.Add(TTestObject.Create(I));
 
   Assert.AreEqual(Count, FList.Count);
 
@@ -2678,9 +2659,9 @@ end;
 
 {$ENDIF TEST_OBJECTLIST}
 
-{$EndRegion 'TObjectList<TMyObject> Tests'}
+{$EndRegion 'TObjectList<TTestObject> Tests'}
 
-{$Region 'TMyObjectList Tests'}
+{$Region 'TTestObjectList Tests'}
 
 { TObjectListDescendantTestObject }
 
@@ -2688,10 +2669,10 @@ end;
 
 procedure TObjectListDescendantTestObject.Setup;
 var
-  Comparer: IComparer<TMyObject>;
+  Comparer: IComparer<TTestObject>;
 begin
   Comparer := TObjectListTestObjectComparer.Create;
-  FList := TMyObjectList.Create(Comparer);
+  FList := TTestObjectList.Create(Comparer);
 end;
 
 procedure TObjectListDescendantTestObject.TearDown;
@@ -2701,17 +2682,17 @@ end;
 
 procedure TObjectListDescendantTestObject.TestAdd;
 begin
-  FList.Add(TMyObject.Create(10));
+  FList.Add(TTestObject.Create(10));
   Assert.AreEqual(1, FList.Count);
   Assert.AreEqual(10, FList[0].ID);
 end;
 
 procedure TObjectListDescendantTestObject.TestRemove;
 var
-  Obj10, Obj20: TMyObject;
+  Obj10, Obj20: TTestObject;
 begin
-  Obj10 := TMyObject.Create(10);
-  Obj20 := TMyObject.Create(20);
+  Obj10 := TTestObject.Create(10);
+  Obj20 := TTestObject.Create(20);
   FList.Add(Obj10);
   FList.Add(Obj20);
   Assert.AreEqual(2, FList.Count);
@@ -2722,9 +2703,9 @@ end;
 
 procedure TObjectListDescendantTestObject.TestDelete;
 begin
-  FList.Add(TMyObject.Create(10));
-  FList.Add(TMyObject.Create(20));
-  FList.Add(TMyObject.Create(30));
+  FList.Add(TTestObject.Create(10));
+  FList.Add(TTestObject.Create(20));
+  FList.Add(TTestObject.Create(30));
   Assert.AreEqual(3, FList.Count);
   FList.Delete(0);
   Assert.AreEqual(2, FList.Count);
@@ -2738,17 +2719,17 @@ end;
 
 procedure TObjectListDescendantTestObject.TestClear;
 begin
-  FList.Add(TMyObject.Create(1));
-  FList.Add(TMyObject.Create(2));
-  FList.Add(TMyObject.Create(3));
+  FList.Add(TTestObject.Create(1));
+  FList.Add(TTestObject.Create(2));
+  FList.Add(TTestObject.Create(3));
   FList.Clear;
   Assert.AreEqual(0, FList.Count);
 end;
 
 procedure TObjectListDescendantTestObject.TestInsert;
 begin
-  FList.Add(TMyObject.Create(10));
-  FList.Insert(0, TMyObject.Create(5));
+  FList.Add(TTestObject.Create(10));
+  FList.Insert(0, TTestObject.Create(5));
   Assert.AreEqual(2, FList.Count);
   Assert.AreEqual(5, FList[0].ID);
   Assert.AreEqual(10, FList[1].ID);
@@ -2756,13 +2737,13 @@ end;
 
 procedure TObjectListDescendantTestObject.TestContains;
 var
-  Obj: TMyObject;
-  TestObj: TMyObject;
+  Obj: TTestObject;
+  TestObj: TTestObject;
 begin
-  Obj := TMyObject.Create(42);
+  Obj := TTestObject.Create(42);
   FList.Add(Obj);
   Assert.IsTrue(FList.Contains(Obj));
-  TestObj := TMyObject.Create(99);
+  TestObj := TTestObject.Create(99);
   Assert.IsFalse(FList.Contains(TestObj)); // not added
   TestObj.Free;
 end;
@@ -2770,18 +2751,18 @@ end;
 procedure TObjectListDescendantTestObject.TestCount;
 begin
   Assert.AreEqual(0, FList.Count);
-  FList.Add(TMyObject.Create(100));
+  FList.Add(TTestObject.Create(100));
   Assert.AreEqual(1, FList.Count);
-  FList.Add(TMyObject.Create(200));
+  FList.Add(TTestObject.Create(200));
   Assert.AreEqual(2, FList.Count);
 end;
 
 procedure TObjectListDescendantTestObject.TestSetOwnsObjects;
 var
-  Obj10, Obj20: TMyObject;
+  Obj10, Obj20: TTestObject;
 begin
-  Obj10 := TMyObject.Create(10);
-  Obj20 := TMyObject.Create(20);
+  Obj10 := TTestObject.Create(10);
+  Obj20 := TTestObject.Create(20);
   // change OwnsObjects
   FList.OwnsObjects := False;
   FList.Add(Obj10);
@@ -2804,11 +2785,11 @@ end;
 
 procedure TObjectListDescendantTestObject.TestPack;
 begin
-  FList.Add(TMyObject.Create(1));
+  FList.Add(TTestObject.Create(1));
   FList.Add(nil);
-  FList.Add(TMyObject.Create(2));
+  FList.Add(TTestObject.Create(2));
   FList.Add(nil);
-  FList.Add(TMyObject.Create(3));
+  FList.Add(TTestObject.Create(3));
 
   FList.Pack;
 
@@ -2821,24 +2802,24 @@ end;
 procedure TObjectListDescendantTestObject.TestAddRange;
 begin
   FList.AddRange([
-    TMyObject.Create(4),
-    TMyObject.Create(5),
-    TMyObject.Create(6)
+    TTestObject.Create(4),
+    TTestObject.Create(5),
+    TTestObject.Create(6)
   ]);
   Assert.AreEqual(3, FList.Count);
 
   FList.AddRange([
-    TMyObject.Create(1),
-    TMyObject.Create(2),
-    TMyObject.Create(3)
+    TTestObject.Create(1),
+    TTestObject.Create(2),
+    TTestObject.Create(3)
   ]);
   Assert.AreEqual(6, FList.Count);
 
   FList.AddRange([
-    TMyObject.Create(7),
-    TMyObject.Create(8),
-    TMyObject.Create(9),
-    TMyObject.Create(10)
+    TTestObject.Create(7),
+    TTestObject.Create(8),
+    TTestObject.Create(9),
+    TTestObject.Create(10)
   ]);
   Assert.AreEqual(10, FList.Count);
 end;
@@ -2848,7 +2829,7 @@ var
   I: Integer;
 begin
   for I := 1 to 10 do
-    FList.Add(TMyObject.Create(I));
+    FList.Add(TTestObject.Create(I));
 
   FList.DeleteRange(3, 4); // Deletes items at index 3..6
 
@@ -2869,7 +2850,7 @@ var
   I: Integer;
 begin
   for I := 1 to Count do
-    FList.Add(TMyObject.Create(I));
+    FList.Add(TTestObject.Create(I));
 
   Assert.AreEqual(Count, FList.Count);
 
@@ -2884,7 +2865,7 @@ var
   I: Integer;
 begin
   for I := 1 to Count do
-    FList.Add(TMyObject.Create(I));
+    FList.Add(TTestObject.Create(I));
 
   Assert.AreEqual(Count, FList.Count);
 
@@ -2896,11 +2877,11 @@ end;
 
 {$ENDIF TEST_OBJECTLIST}
 
-{$EndRegion 'TMyObjectList Tests'}
+{$EndRegion 'TTestObjectList Tests'}
 
-{ TMyObjectList }
+{ TTestObjectList }
 
-procedure TMyObjectList.Notify(const Item: TMyObject;
+procedure TTestObjectList.Notify(const Item: TTestObject;
   Action: TCollectionNotification);
 begin
   // Just need a different method pointer

@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{ADCA408C-52AC-4548-A594-3B3624DCB5A4}</ProjectGuid>
-        <ProjectVersion>20.2</ProjectVersion>
+        <ProjectVersion>20.3</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
@@ -130,6 +130,7 @@
         <DCCReference Include="uDictionaryTest.pas"/>
         <DCCReference Include="uStackTest.pas"/>
         <DCCReference Include="uQueueTest.pas"/>
+        <DCCReference Include="uTestTypes.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
