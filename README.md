@@ -67,3 +67,7 @@ This has been tested with:
 
 ## 📌 TRapidDictionary/TRapidObjectDictionary
 Rapid "inline" `TDictionary` / `TObjectDictionary` equivalents with default hash codes and comparers.
+
+## Code formatting
+
+The Code is formatted by [pasfmt](https://github.com/integrated-application-development/pasfmt).
