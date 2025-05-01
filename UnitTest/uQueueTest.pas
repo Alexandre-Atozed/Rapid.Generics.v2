@@ -157,13 +157,18 @@ begin
   Assert.AreEqual(10, FQueue.Peek.ID);
 end;
 
+{$Hints off}
 procedure TTestTObjectQueue.TestDequeue;
 var
   Obj: TTestObject;
+  RefCounter: Integer;
 begin
-  FQueue.Enqueue(TTestObject.Create(20));
+  FQueue.Enqueue(TTestObject.Create(20, RefCounter));
   Obj := FQueue.Dequeue;
-  Assert.AreEqual(20, Obj.ID);
+  // Any access to the object after Dequeue is not valid because the object has been destroyed
+  // so we use the RefCounter. A correct RefCounter also guarantees that dequeue actually destroyed
+  // the object
+  Assert.AreEqual(20, RefCounter);
   Assert.AreEqual(0, FQueue.Count);
   // Dequeue frees the object. No memory leaks should occur here
 end;
@@ -195,16 +200,21 @@ const
 var
   I: Integer;
   Obj: TTestObject;
+  RefCounter: Integer;
 begin
   for I := 1 to ItemCount do
-    FQueue.Enqueue(TTestObject.Create(I));
+    FQueue.Enqueue(TTestObject.Create(I, RefCounter));
 
   Assert.AreEqual(ItemCount, FQueue.Count);
 
   for I := 1 to ItemCount do
   begin
+    RefCounter := 0;
     Obj := FQueue.Dequeue;
-    Assert.AreEqual(I, Obj.ID);
+    // Any access to the object after Dequeue is not valid because the object has been destroyed
+    // so we use the RefCounter. A correct RefCounter also guarantees that dequeue actually destroyed
+    // the object
+    Assert.AreEqual(I, RefCounter);
     // Dequeue frees the object. No memory leaks should occur here
   end;
 
@@ -239,10 +249,14 @@ end;
 procedure TTestTCustomObjectQueue.TestDequeue;
 var
   Obj: TTestObject;
+  RefCounter: Integer;
 begin
-  FQueue.Enqueue(TTestObject.Create(20));
+  FQueue.Enqueue(TTestObject.Create(20, RefCounter));
   Obj := FQueue.Dequeue;
-  Assert.AreEqual(20, Obj.ID);
+  // Any access to the object after Dequeue is not valid because the object has been destroyed
+  // so we use the RefCounter. A correct RefCounter also guarantees that dequeue actually destroyed
+  // the object
+  Assert.AreEqual(20, RefCounter);
   Assert.AreEqual(0, FQueue.Count);
   // Dequeue frees the object. No memory leaks should occur here
 end;
@@ -274,16 +288,21 @@ const
 var
   I: Integer;
   Obj: TTestObject;
+  RefCounter: Integer;
 begin
   for I := 1 to ItemCount do
-    FQueue.Enqueue(TTestObject.Create(I));
+    FQueue.Enqueue(TTestObject.Create(I, RefCounter));
 
   Assert.AreEqual(ItemCount, FQueue.Count);
 
   for I := 1 to ItemCount do
   begin
+    RefCounter := 0;
     Obj := FQueue.Dequeue;
-    Assert.AreEqual(I, Obj.ID);
+    // Any access to the object after Dequeue is not valid because the object has been destroyed
+    // so we use the RefCounter. A correct RefCounter also guarantees that dequeue actually destroyed
+    // the object
+    Assert.AreEqual(I, RefCounter);
     // Dequeue frees the object. No memory leaks should occur here
   end;
 

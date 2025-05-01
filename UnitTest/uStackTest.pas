@@ -169,28 +169,30 @@ begin
   Assert.AreEqual(10, FStack.Peek.ID);
 end;
 
+{$Hints off}
 procedure TTestTObjectStack.TestPop;
 var
   Obj: TTestObject;
+  RefCounter: Integer;
 begin
-  FStack.Push(TTestObject.Create(20));
-  FStack.Push(TTestObject.Create(30));
-  FStack.Push(TTestObject.Create(40));
+  FStack.Push(TTestObject.Create(20, RefCounter));
+  FStack.Push(TTestObject.Create(30, RefCounter));
+  FStack.Push(TTestObject.Create(40, RefCounter));
 
   Assert.AreEqual(3, FStack.Count);
 
   Obj := FStack.Pop;
-  Assert.AreEqual(40, Obj.ID);
+  Assert.AreEqual(40, RefCounter);
 
   Assert.AreEqual(2, FStack.Count);
 
   Obj := FStack.Pop;
-  Assert.AreEqual(30, Obj.ID);
+  Assert.AreEqual(30, RefCounter);
 
   Assert.AreEqual(1, FStack.Count);
 
   Obj := FStack.Pop;
-  Assert.AreEqual(20, Obj.ID);
+  Assert.AreEqual(20, RefCounter);
 
   Assert.AreEqual(0, FStack.Count);
 end;
@@ -232,15 +234,16 @@ const
 var
   I: Integer;
   Obj: TTestObject;
+  RefCounter: Integer;
 begin
   for I := 1 to ItemCount do
-    FStack.Push(TTestObject.Create(I));
+    FStack.Push(TTestObject.Create(I, RefCounter));
   Assert.AreEqual(ItemCount, FStack.Count);
 
   for I := ItemCount downto 1 do
   begin
     Obj := FStack.Pop;
-    Assert.AreEqual(I, Obj.ID);
+    Assert.AreEqual(I, RefCounter);
   end;
 
   Assert.AreEqual(0, FStack.Count);
@@ -275,25 +278,26 @@ end;
 procedure TTestTCustomObjectStack.TestPop;
 var
   Obj: TTestObject;
+  RefCounter: Integer;
 begin
-  FStack.Push(TTestObject.Create(20));
-  FStack.Push(TTestObject.Create(30));
-  FStack.Push(TTestObject.Create(40));
+  FStack.Push(TTestObject.Create(20, RefCounter));
+  FStack.Push(TTestObject.Create(30, RefCounter));
+  FStack.Push(TTestObject.Create(40, RefCounter));
 
   Assert.AreEqual(3, FStack.Count);
 
   Obj := FStack.Pop;
-  Assert.AreEqual(40, Obj.ID);
+  Assert.AreEqual(40, RefCounter);
 
   Assert.AreEqual(2, FStack.Count);
 
   Obj := FStack.Pop;
-  Assert.AreEqual(30, Obj.ID);
+  Assert.AreEqual(30, RefCounter);
 
   Assert.AreEqual(1, FStack.Count);
 
   Obj := FStack.Pop;
-  Assert.AreEqual(20, Obj.ID);
+  Assert.AreEqual(20, RefCounter);
 
   Assert.AreEqual(0, FStack.Count);
 end;
@@ -335,15 +339,16 @@ const
 var
   I: Integer;
   Obj: TTestObject;
+  RefCounter: Integer;
 begin
   for I := 1 to ItemCount do
-    FStack.Push(TTestObject.Create(I));
+    FStack.Push(TTestObject.Create(I, RefCounter));
   Assert.AreEqual(ItemCount, FStack.Count);
 
   for I := ItemCount downto 1 do
   begin
     Obj := FStack.Pop;
-    Assert.AreEqual(I, Obj.ID);
+    Assert.AreEqual(I, RefCounter);
   end;
 
   Assert.AreEqual(0, FStack.Count);

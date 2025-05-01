@@ -10,8 +10,11 @@ type
   TTestObject = class
   private
     FId: Integer;
+    FRefCounter: PInteger;
   public
-    constructor Create(AId: Integer);
+    constructor Create(AId: Integer); overload;
+    constructor Create(AId: Integer; var RefCounter: Integer); overload;
+    destructor Destroy; override;
     property ID: Integer read FId;
   end;
 
@@ -42,6 +45,19 @@ constructor TTestObject.Create(AId: Integer);
 begin
   inherited Create;
   FId := AId;
+end;
+
+constructor TTestObject.Create(AId: Integer; var RefCounter: Integer);
+begin
+  Create(AId);
+  FRefCounter := @RefCounter;
+end;
+
+destructor TTestObject.Destroy;
+begin
+  if Assigned(FRefCounter) then
+    FRefCounter^ := FId;
+  inherited;
 end;
 
 { TTestInterfacedObject }
