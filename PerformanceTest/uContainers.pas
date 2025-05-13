@@ -2,7 +2,10 @@ unit uContainers;
 
 interface
 uses
-  Winapi.Windows, System.SysUtils, Generics.Defaults, Generics.Collections,
+  Winapi.Windows,
+  System.SysUtils,
+  Generics.Defaults,
+  Generics.Collections,
   Rapid.Generics;
 
 type
@@ -210,11 +213,9 @@ type
     function Execute: T; override;
   end;
 
-
 procedure Run;
 
 implementation
-
 
 procedure FillItems;
 var
@@ -254,7 +255,6 @@ begin
   InternalRun(SystemQueueEnqueue_Capacity, RapidQueueEnqueue_Capacity, 300);
   InternalRun(SystemQueueDequeue, RapidQueueDequeue, 500);
 end;
-
 
 { TTest }
 
@@ -304,7 +304,8 @@ var
   i: Integer;
 begin
   List.Clear;
-  if (UseCapacity) then List.Capacity := ITEMS_COUNT;
+  if (UseCapacity) then
+    List.Capacity := ITEMS_COUNT;
 
   for i := 0 to ITEMS_COUNT - 1 do
     List.Add(ITEMS[i]);
@@ -333,7 +334,8 @@ var
   i: Integer;
 begin
   List.Clear;
-  if (UseCapacity) then List.Capacity := ITEMS_COUNT;
+  if (UseCapacity) then
+    List.Capacity := ITEMS_COUNT;
 
   for i := 0 to ITEMS_COUNT - 1 do
     List.Add(ITEMS[i]);
@@ -362,7 +364,8 @@ var
   i: Integer;
 begin
   Stack.Clear;
-  if (UseCapacity) then Stack.Capacity := ITEMS_COUNT;
+  if (UseCapacity) then
+    Stack.Capacity := ITEMS_COUNT;
 
   for i := 0 to ITEMS_COUNT - 1 do
     Stack.Push(ITEMS[i]);
@@ -391,7 +394,8 @@ var
   i: Integer;
 begin
   Stack.Clear;
-  if (UseCapacity) then Stack.Capacity := ITEMS_COUNT;
+  if (UseCapacity) then
+    Stack.Capacity := ITEMS_COUNT;
 
   for i := 0 to ITEMS_COUNT - 1 do
     Stack.Push(ITEMS[i]);
@@ -420,7 +424,8 @@ var
   i: Integer;
 begin
   Queue.Clear;
-  if (UseCapacity) then Queue.Capacity := ITEMS_COUNT;
+  if (UseCapacity) then
+    Queue.Capacity := ITEMS_COUNT;
 
   for i := 0 to ITEMS_COUNT - 1 do
     Queue.Enqueue(ITEMS[i]);
@@ -449,7 +454,8 @@ var
   i: Integer;
 begin
   Queue.Clear;
-  if (UseCapacity) then Queue.Capacity := ITEMS_COUNT;
+  if (UseCapacity) then
+    Queue.Capacity := ITEMS_COUNT;
 
   for i := 0 to ITEMS_COUNT - 1 do
     Queue.Enqueue(ITEMS[i]);

@@ -360,4 +360,3 @@ initialization
   TDUnitX.RegisterTestFixture(TTestTCustomObjectStack);
 
 end.
-
