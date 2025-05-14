@@ -16,20 +16,21 @@ program RapidGenericsTestSuite;
 
 uses
   FastMM4,
-{$IFDEF UseVCL}
+  {$IFDEF UseVCL}
   VCL.Forms,
   // Uncomment the line below (and fix the if necessary) in case the compiler cannot find DUnitX.Loggers.GUI.VCL.pas or dfm files
-  DUnitX.Loggers.GUI.VCL {in 'c:\program files (x86)\embarcadero\studio\23.0\source\DUnitX\DUnitX.Loggers.GUI.VCL.pas'},
-{$ENDIF }
-{$IFDEF UseFMX}
+  DUnitX.Loggers.GUI.VCL
+    {in 'c:\program files (x86)\embarcadero\studio\23.0\source\DUnitX\DUnitX.Loggers.GUI.VCL.pas'},
+  {$ENDIF }
+  {$IFDEF UseFMX}
   FMX.Forms,
-{$ENDIF }
-{$IFDEF UseConsole}
+  {$ENDIF }
+  {$IFDEF UseConsole}
   DUnitX.ConsoleWriter.Base,
-{$ENDIF }
-{$IFDEF UseWinConsole}
+  {$ENDIF }
+  {$IFDEF UseWinConsole}
   DUnitX.Windows.Console,
-{$ENDIF }
+  {$ENDIF }
   System.SysUtils,
   DUnitX.Generics,
   DUnitX.InternalInterfaces,
@@ -62,36 +63,34 @@ begin
   GUIVCLTestRunner.Font.Name := 'IBM Plex Sans';
   GUIVCLTestRunner.Font.Size := 10;
   Application.Run;
-{$ENDIF}
-  /////////////////////////////////////////////////////////////////////////
-{$IFDEF UseFMX}
+  {$ENDIF}
+/////////////////////////////////////////////////////////////////////////
+  {$IFDEF UseFMX}
   begin
     Application.Initialize;
     Application.CreateForm(TGUIXTestRunner, GUIXTestRunner);
     Application.Run;
-{$ENDIF}
-    /////////////////////////////////////////////////////////////////////////
-{$IFDEF UseConsole}
-    var runner: ITestRunner;
-    results:
-    IRunResults;
-    logger:
-    ITestLogger;
-    nunitLogger:
-    ITestLogger;
+    {$ENDIF}
+/////////////////////////////////////////////////////////////////////////
+    {$IFDEF UseConsole}
+    var
+    runner: ITestRunner;
+    results: IRunResults;
+    logger: ITestLogger;
+    nunitLogger: ITestLogger;
 
     begin
       try
-        //Create the runner
+      //Create the runner
         runner := TDUnitX.CreateRunner;
         runner.UseRTTI := True;
-        //tell the runner how we will log things
+      //tell the runner how we will log things
         logger := TDUnitXConsoleLogger.Create(true);
         nunitLogger := TDUnitXXMLNUnitFileLogger.Create;
         runner.AddLogger(logger);
         runner.AddLogger(nunitLogger);
 
-        //Run tests
+      //Run tests
         results := runner.Execute;
 
         System.Write('Done.. press <Enter> key to quit.');
@@ -101,7 +100,8 @@ begin
         on E: Exception do
           System.Writeln(E.ClassName, ': ', E.Message);
       end;
-{$ENDIF}
-      /////////////////////////////////////////////////////////////////////////
+      {$ENDIF}
+/////////////////////////////////////////////////////////////////////////
 
     end.
+

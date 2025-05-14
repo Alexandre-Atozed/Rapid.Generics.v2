@@ -7,11 +7,11 @@ interface
 uses
   System.SysUtils,
   System.Classes,
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   Rapid.Generics,
-{$ELSE}
+  {$ELSE}
   System.Generics.Collections,
-{$ENDIF}
+  {$ENDIF}
   DUnitX.TestFramework,
   uTestTypes;
 
@@ -351,18 +351,18 @@ end;
 
 procedure TDictionaryISTest.TestFind;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add(1, 'One');
   Assert.IsNotNull(FDictionary.Find(1));
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionaryISTest.TestFindOrAdd;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd(2);
   Assert.IsNotNull(P);
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionaryISTest.TestExtractPair;
@@ -452,18 +452,18 @@ end;
 
 procedure TDictionarySSTest.TestFind;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add('Key1', 'One');
   Assert.IsNotNull(FDictionary.Find('Key1'));
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionarySSTest.TestFindOrAdd;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd('Key2');
   Assert.IsNotNull(P);
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionarySSTest.TestExtractPair;
@@ -553,18 +553,18 @@ end;
 
 procedure TDictionaryIITest.TestFind;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add(1, 11);
   Assert.IsNotNull(FDictionary.Find(1));
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionaryIITest.TestFindOrAdd;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd(2);
   Assert.IsNotNull(P);
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionaryIITest.TestExtractPair;
@@ -654,18 +654,18 @@ end;
 
 procedure TDictionaryIDTest.TestFind;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add(1, 11.1);
   Assert.IsNotNull(FDictionary.Find(1));
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionaryIDTest.TestFindOrAdd;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd(2);
   Assert.IsNotNull(P);
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionaryIDTest.TestExtractPair;
@@ -755,18 +755,18 @@ end;
 
 procedure TDictionaryIPTest.TestFind;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   FDictionary.Add(1, Pointer(11));
   Assert.IsNotNull(FDictionary.Find(1));
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionaryIPTest.TestFindOrAdd;
 begin
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   var P := FDictionary.FindOrAdd(2);
   Assert.IsNotNull(P);
-{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TDictionaryIPTest.TestExtractPair;
@@ -1074,13 +1074,15 @@ end;
 
 { TCustomObjectDictionary }
 
-procedure TCustomObjectDictionary.KeyNotify(const Key: Integer; Action: TCollectionNotification);
+procedure TCustomObjectDictionary.KeyNotify(const Key: Integer;
+  Action: TCollectionNotification);
 begin
   // Just need a different method
   inherited;
 end;
 
-procedure TCustomObjectDictionary.ValueNotify(const Value: TTestObject; Action: TCollectionNotification);
+procedure TCustomObjectDictionary.ValueNotify(const Value: TTestObject;
+  Action: TCollectionNotification);
 begin
   // Just need a different method
   inherited;
@@ -1355,12 +1357,14 @@ end;
 
 { TCustomObjectDictionary2 }
 
-procedure TCustomObjectDictionary2.KeyNotify(const Key: TTestObject; Action: TCollectionNotification);
+procedure TCustomObjectDictionary2.KeyNotify(const Key: TTestObject;
+  Action: TCollectionNotification);
 begin
   inherited;
 end;
 
-procedure TCustomObjectDictionary2.ValueNotify(const Value: Integer; Action: TCollectionNotification);
+procedure TCustomObjectDictionary2.ValueNotify(const Value: Integer;
+  Action: TCollectionNotification);
 begin
   inherited;
 end;
@@ -1512,3 +1516,4 @@ initialization
   TDUnitX.RegisterTestFixture(TCustomObjectDictionaryOITest);
 
 end.
+

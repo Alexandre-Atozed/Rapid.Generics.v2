@@ -7,11 +7,11 @@ interface
 uses
   System.SysUtils,
   System.Classes,
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   Rapid.Generics,
-{$ELSE}
+  {$ELSE}
   System.Generics.Collections,
-{$ENDIF}
+  {$ENDIF}
   DUnitX.TestFramework,
   uTestTypes;
 
@@ -169,7 +169,8 @@ begin
   Assert.AreEqual(10, FStack.Peek.ID);
 end;
 
-{$Hints off}
+{$HINTS off}
+
 procedure TTestTObjectStack.TestPop;
 var
   Obj: TTestObject;
@@ -360,3 +361,4 @@ initialization
   TDUnitX.RegisterTestFixture(TTestTCustomObjectStack);
 
 end.
+

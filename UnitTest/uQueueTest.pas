@@ -7,11 +7,11 @@ interface
 uses
   System.SysUtils,
   System.Classes,
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   Rapid.Generics,
-{$ELSE}
+  {$ELSE}
   System.Generics.Collections,
-{$ENDIF}
+  {$ENDIF}
   DUnitX.TestFramework,
   uTestTypes;
 
@@ -157,7 +157,8 @@ begin
   Assert.AreEqual(10, FQueue.Peek.ID);
 end;
 
-{$Hints off}
+{$HINTS off}
+
 procedure TTestTObjectQueue.TestDequeue;
 var
   Obj: TTestObject;
@@ -315,3 +316,4 @@ initialization
   TDUnitX.RegisterTestFixture(TTestTCustomObjectQueue);
 
 end.
+

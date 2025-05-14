@@ -16,12 +16,12 @@ uses
   System.Classes,
   System.Types,
   WinAPI.Windows,
-{$IFDEF TEST_RAPIDGENERICS}
+  {$IFDEF TEST_RAPIDGENERICS}
   Rapid.Generics,
-{$ELSE}
+  {$ELSE}
   System.Generics.Collections,
   System.Generics.Defaults,
-{$ENDIF}
+  {$ENDIF}
   DUnitX.TestFramework,
   uTestTypes;
 
@@ -30,7 +30,7 @@ type
     class function CreateSampleList(const Values: array of T; const NilIndex: array of Integer): TList<T>;
   end;
 
-{$IFDEF TEST_INTLIST}
+  {$IFDEF TEST_INTLIST}
   [TestFixture]
   TListTestInteger = class
   private
@@ -67,9 +67,9 @@ type
     [Test]
     procedure TestDeleteRange;
   end;
-{$ENDIF TEST_INTLIST}
+  {$ENDIF TEST_INTLIST}
 
-{$IFDEF TEST_FLOATLIST}
+  {$IFDEF TEST_FLOATLIST}
   [TestFixture]
   TListTestDouble = class
   private
@@ -104,9 +104,9 @@ type
     [Test]
     procedure TestFloatDeleteRange;
   end;
-{$ENDIF TEST_FLOATLIST}
+  {$ENDIF TEST_FLOATLIST}
 
-{$IFDEF TEST_STRINGLIST}
+  {$IFDEF TEST_STRINGLIST}
   [TestFixture]
   TListTestString = class
   private
@@ -139,9 +139,9 @@ type
     [Test]
     procedure TestStringAddRange;
   end;
-{$ENDIF TEST_STRINGLIST}
+  {$ENDIF TEST_STRINGLIST}
 
-{$IFDEF TEST_POINTERLIST}
+  {$IFDEF TEST_POINTERLIST}
   [TestFixture]
   TListTestPointer = class
   private
@@ -175,9 +175,9 @@ type
     [Test]
     procedure TestPointerDeleteRange;
   end;
-{$ENDIF TEST_POINTERLIST}
+  {$ENDIF TEST_POINTERLIST}
 
-{$IFDEF TEST_RECORDLIST}
+  {$IFDEF TEST_RECORDLIST}
 
   // Test for lists of records with strings (managed types)
   TTestRecordString = record
@@ -332,7 +332,7 @@ type
     B: string;
   end;
 
-  IMyInterfacedObject = Interface
+  IMyInterfacedObject = interface
     ['{6563A9CF-4259-4CD1-BACB-B5D89E66497B}']
     procedure DoSomeStuff();
   end;
@@ -382,9 +382,9 @@ type
     procedure TestDeleteRange;
   end;
 
-{$ENDIF TEST_RECORDLIST}
+  {$ENDIF TEST_RECORDLIST}
 
-{$IFDEF TEST_OBJECTLIST}
+  {$IFDEF TEST_OBJECTLIST}
 
   TObjectListTestObjectComparer = class(TInterfacedObject, IComparer<TTestObject>)
   public
@@ -470,7 +470,7 @@ type
     procedure TestHuge;
   end;
 
-{$ENDIF TEST_OBJECTLIST}
+  {$ENDIF TEST_OBJECTLIST}
 
 implementation
 
@@ -492,7 +492,8 @@ begin
     Result[I] := Default(T);
 end;
 
-{$Region 'TList<Integer> Tests'}
+{$REGION 'TList<Integer> Tests'}
+
 {$IFDEF TEST_INTLIST}
 procedure TListTestInteger.Setup;
 begin
@@ -680,9 +681,10 @@ begin
   Assert.IsFalse(FList.Contains(4) or FList.Contains(5) or FList.Contains(6) or FList.Contains(7));
 end;
 {$ENDIF TEST_INTLIST}
-{$EndRegion 'TList<Integer> Tests'}
+{$ENDREGION 'TList<Integer> Tests'}
 
-{$Region 'TList<Double> Tests'}
+{$REGION 'TList<Double> Tests'}
+
 {$IFDEF TEST_FLOATLIST}
 procedure TListTestDouble.Setup;
 begin
@@ -849,9 +851,10 @@ begin
   Assert.IsFalse(FList.Contains(4) or FList.Contains(5) or FList.Contains(6) or FList.Contains(7));
 end;
 {$ENDIF TEST_FLOATLIST}
-{$EndRegion 'Test<Double> Tests'}
+{$ENDREGION 'Test<Double> Tests'}
 
-{$Region 'TList<String> Tests'}
+{$REGION 'TList<String> Tests'}
+
 {$IFDEF TEST_STRINGLIST}
 procedure TListTestString.Setup;
 begin
@@ -964,10 +967,7 @@ begin
 
   // Sort the list
   FList.Sort;
-  Assert.AreEqual(
-      'InsertedItem',
-      FList[0]
-  ); // Since it doesn't have "ItemX" pattern
+  Assert.AreEqual('InsertedItem', FList[0]); // Since it doesn't have "ItemX" pattern
 
   {$IFDEF TEST_RAPIDGENERICS} // Std TList<> does not have SortDescending
   // Sort the list
@@ -1015,9 +1015,9 @@ begin
   end;
 end;
 {$ENDIF TEST_STRINGLIST}
-{$EndRegion 'TList<String> Tests'}
+{$ENDREGION 'TList<String> Tests'}
 
-{$Region 'TList<Pointer> Tests'}
+{$REGION 'TList<Pointer> Tests'}
 {$IFDEF TEST_POINTERLIST}
 
 procedure TListTestPointer.Setup;
@@ -1194,13 +1194,10 @@ begin
     // Verify sorting
     Assert.AreEqual(MaxCount, Integer(PointerList.Count), 'Count changed after sort');
     for I := 0 to MaxCount - 1 do
-      Assert.AreEqual(
-          NativeInt(ExpectedList[I]),
-          NativeInt(PointerList[I]),
-          Format('Sort failed at index %d', [I])
-      );
+      Assert.AreEqual(NativeInt(ExpectedList[I]), NativeInt(PointerList[I]),
+        Format('Sort failed at index %d', [I]));
 
-  {$IFDEF TEST_RAPIDGENERICS} // Std TList<> does not have SortDescending
+    {$IFDEF TEST_RAPIDGENERICS} // Std TList<> does not have SortDescending
     // Sort again, descending
     PointerList.SortDescending;
     ExpectedList.Sort(ComparePointersDescending);
@@ -1208,8 +1205,9 @@ begin
     // Verify sorting descending
     Assert.AreEqual(MaxCount, Integer(PointerList.Count), 'Count changed after sort');
     for I := MaxCount - 1 downto 0 do
-      Assert.AreEqual(NativeInt(ExpectedList[I]), NativeInt(PointerList[I]), Format('Sort failed at index %d', [I]));
-  {$ENDIF TEST_RAPIDGENERICS}
+      Assert.AreEqual(NativeInt(ExpectedList[I]), NativeInt(PointerList[I]),
+        Format('Sort failed at index %d', [I]));
+    {$ENDIF TEST_RAPIDGENERICS}
 
     // Sort ascending again for other tests
     PointerList.Sort;
@@ -1220,16 +1218,11 @@ begin
     begin
       Index := Random(MaxCount);
       Ptr := ExpectedList[Index];
-      Assert.IsTrue(
-          PointerList.BinarySearch(Ptr, IndexFound),
-          Format('BinarySearch failed for value %d', [NativeInt(Ptr)])
-      );
+      Assert.IsTrue(PointerList.BinarySearch(Ptr, IndexFound), Format('BinarySearch failed for value %d',
+        [NativeInt(Ptr)]));
       if Index <> IndexFound then
-        Assert.AreEqual(
-            Integer(Index),
-            Integer(IndexFound),
-            Format('BinarySearch returned wrong index. Expected %d, found %d', [Index, IndexFound])
-        );
+        Assert.AreEqual(Integer(Index), Integer(IndexFound),
+          Format('BinarySearch returned wrong index. Expected %d, found %d', [Index, IndexFound]));
     end;
 
     // Remove random items
@@ -1247,37 +1240,27 @@ begin
     // Verify after removals
     Assert.AreEqual(Integer(ExpectedList.Count), Integer(PointerList.Count), 'Count mismatch after removals');
     for I := 0 to PointerList.Count - 1 do
-      Assert.AreEqual(
-          NativeInt(ExpectedList[I]),
-          NativeInt(PointerList[I]),
-          Format('List mismatch after removals at index %d', [I])
-      );
+      Assert.AreEqual(NativeInt(ExpectedList[I]), NativeInt(PointerList[I]),
+        Format('List mismatch after removals at index %d', [I]));
 
     // Test BinarySearch after removals
     for I := 1 to 50 do
     begin
       Index := Random(PointerList.Count);
       Ptr := PointerList[Index];
-      Assert.IsTrue(
-          PointerList.BinarySearch(Ptr, IndexFound),
-          Format('BinarySearch failed post-removal for value %d', [NativeInt(Ptr)])
-      );
+      Assert.IsTrue(PointerList.BinarySearch(Ptr, IndexFound),
+        Format('BinarySearch failed post-removal for value %d', [NativeInt(Ptr)]));
       if Index <> IndexFound then
-        Assert.AreEqual(
-            Integer(Index),
-            Integer(IndexFound),
-            Format('BinarySearch wrong index post-removal. Expected %d, found %d', [Index, IndexFound])
-        );
+        Assert.AreEqual(Integer(Index), Integer(IndexFound),
+          Format('BinarySearch wrong index post-removal. Expected %d, found %d', [Index, IndexFound]));
     end;
 
     // Test search on removed item
     for i := Low(RemovedValues) to High(RemovedValues) do
     begin
       Ptr := RemovedValues[i];
-      Assert.IsFalse(
-          PointerList.Contains(Ptr) and PointerList.BinarySearch(Ptr, Index),
-          'BinarySearch found a removed item'
-      );
+      Assert.IsFalse(PointerList.Contains(Ptr) and PointerList.BinarySearch(Ptr, Index),
+        'BinarySearch found a removed item');
     end;
 
     // Clear and verify
@@ -1363,16 +1346,15 @@ begin
   Assert.AreEqual(6, Integer(FList.Count));
   Assert.IsTrue(FList.Contains(PArray[1]) and FList.Contains(PArray[2]) and FList.Contains(PArray[3]));
   Assert.IsTrue(FList.Contains(PArray[8]) and FList.Contains(PArray[9]) and FList.Contains(PArray[10]));
-  Assert.IsFalse(
-      FList.Contains(PArray[4]) or FList.Contains(PArray[5]) or FList.Contains(PArray[6]) or FList.Contains(PArray[7])
-  );
+  Assert.IsFalse(FList.Contains(PArray[4]) or FList.Contains(PArray[5]) or FList.Contains(PArray[6]) or
+    FList.Contains(PArray[7]));
 end;
 
 {$ENDIF TEST_POINTERLIST}
 
-{$EndRegion 'TList<Pointer> Tests'}
+{$ENDREGION 'TList<Pointer> Tests'}
 
-{$Region 'TList<TTestRecord> Tests'}
+{$REGION 'TList<TTestRecord> Tests'}
 
 {$IFDEF TEST_RECORDLIST}
 
@@ -2443,9 +2425,11 @@ var
   Comparer: IComparer<TComplexRecord>;
 begin
   // Create a comparer that sorts by ID
-  Comparer :=
-      TComparer<TComplexRecord>
-          .Construct(function(const Left, Right: TComplexRecord): Integer begin Result := Left.ID - Right.ID; end);
+  Comparer := TComparer<TComplexRecord>.Construct(
+    function(const Left, Right: TComplexRecord): Integer
+    begin
+      Result := Left.ID - Right.ID;
+    end);
 
   // Create and add records
   Rec1 := CreateComplexRecord(1, 'Test1');
@@ -2538,15 +2522,16 @@ end;
 
 {$ENDIF TEST_RECORDLIST}
 
-{$EndRegion 'TList<TTestRecord> Tests'}
+{$ENDREGION 'TList<TTestRecord> Tests'}
 
-{$Region 'TObjectList<TTestObject> Tests'}
+{$REGION 'TObjectList<TTestObject> Tests'}
 
 {$IFDEF TEST_OBJECTLIST}
 
 { TObjectListTestObjectComparer }
 
-function TObjectListTestObjectComparer.Compare(const Left, Right: TTestObject): Integer;
+function TObjectListTestObjectComparer.Compare(const Left,
+  Right: TTestObject): Integer;
 begin
   if (Left = nil) then
   begin
@@ -2697,13 +2682,26 @@ end;
 
 procedure TObjectListTestObject.TestAddRange;
 begin
-  FList.AddRange([TTestObject.Create(4), TTestObject.Create(5), TTestObject.Create(6)]);
+  FList.AddRange([
+      TTestObject.Create(4),
+      TTestObject.Create(5),
+      TTestObject.Create(6)
+      ]);
   Assert.AreEqual(3, FList.Count);
 
-  FList.AddRange([TTestObject.Create(1), TTestObject.Create(2), TTestObject.Create(3)]);
+  FList.AddRange([
+      TTestObject.Create(1),
+      TTestObject.Create(2),
+      TTestObject.Create(3)
+      ]);
   Assert.AreEqual(6, FList.Count);
 
-  FList.AddRange([TTestObject.Create(7), TTestObject.Create(8), TTestObject.Create(9), TTestObject.Create(10)]);
+  FList.AddRange([
+      TTestObject.Create(7),
+      TTestObject.Create(8),
+      TTestObject.Create(9),
+      TTestObject.Create(10)
+      ]);
   Assert.AreEqual(10, FList.Count);
 end;
 
@@ -2760,9 +2758,9 @@ end;
 
 {$ENDIF TEST_OBJECTLIST}
 
-{$EndRegion 'TObjectList<TTestObject> Tests'}
+{$ENDREGION 'TObjectList<TTestObject> Tests'}
 
-{$Region 'TTestObjectList Tests'}
+{$REGION 'TTestObjectList Tests'}
 
 { TObjectListDescendantTestObject }
 
@@ -2902,13 +2900,26 @@ end;
 
 procedure TObjectListDescendantTestObject.TestAddRange;
 begin
-  FList.AddRange([TTestObject.Create(4), TTestObject.Create(5), TTestObject.Create(6)]);
+  FList.AddRange([
+      TTestObject.Create(4),
+      TTestObject.Create(5),
+      TTestObject.Create(6)
+      ]);
   Assert.AreEqual(3, FList.Count);
 
-  FList.AddRange([TTestObject.Create(1), TTestObject.Create(2), TTestObject.Create(3)]);
+  FList.AddRange([
+      TTestObject.Create(1),
+      TTestObject.Create(2),
+      TTestObject.Create(3)
+      ]);
   Assert.AreEqual(6, FList.Count);
 
-  FList.AddRange([TTestObject.Create(7), TTestObject.Create(8), TTestObject.Create(9), TTestObject.Create(10)]);
+  FList.AddRange([
+      TTestObject.Create(7),
+      TTestObject.Create(8),
+      TTestObject.Create(9),
+      TTestObject.Create(10)
+      ]);
   Assert.AreEqual(10, FList.Count);
 end;
 
@@ -2965,11 +2976,12 @@ end;
 
 {$ENDIF TEST_OBJECTLIST}
 
-{$EndRegion 'TTestObjectList Tests'}
+{$ENDREGION 'TTestObjectList Tests'}
 
 { TTestObjectList }
 
-procedure TTestObjectList.Notify(const Item: TTestObject; Action: TCollectionNotification);
+procedure TTestObjectList.Notify(const Item: TTestObject;
+  Action: TCollectionNotification);
 begin
   // Just need a different method pointer
   inherited;
@@ -2988,3 +3000,4 @@ initialization
   TDUnitX.RegisterTestFixture(TObjectListDescendantTestObject);
 
 end.
+
