@@ -6,6 +6,8 @@ program RapidGenericsTestSuite;
 {.$DEFINE UseWinConsole}
 ////////////////////////////////////////////////////////////////
 
+{.$DEFINE CHECK_MEM_LEAKS}
+
 {$IFDEF UseWinConsole}
   {$DEFINE UseConsole}
 {$ENDIF}
@@ -15,7 +17,9 @@ program RapidGenericsTestSuite;
 {$ENDIF}
 
 uses
-  FastMM4,
+  {$IFDEF CHECK_MEM_LEAKS}
+  FastMM4 in '..\3rdParty\FastMM4\FastMM4.pas',
+  {$ENDIF}
   {$IFDEF UseVCL}
   VCL.Forms,
   // Uncomment the line below (and fix the if necessary) in case the compiler cannot find DUnitX.Loggers.GUI.VCL.pas or dfm files
@@ -103,5 +107,9 @@ begin
       {$ENDIF}
 /////////////////////////////////////////////////////////////////////////
 
-    end.
+{$IFDEF CHECK_MEM_LEAKS}
+TObject.Create;    // Force a mem leak so we know that FastMM is correctly configured to catch/report leaks
+{$ENDIF}
+
+end.
 

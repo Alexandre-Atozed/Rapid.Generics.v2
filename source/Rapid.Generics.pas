@@ -18481,6 +18481,7 @@ end;
 procedure TCustomList<T>.SetCapacity(Value: Integer);
 var
   Dif, NewTail: NativeInt;
+  OldCapacity: NativeInt;
   {$IFDEF WEAKREF}
   WeakItems: PItemList;
   {$ENDIF}
@@ -18520,14 +18521,19 @@ begin
     FCapacity.Native := Value;
   end
   else
-    {$ENDIF}if (FCount.Native = 0) then
+    {$ENDIF}
+    if (FCount.Native = 0) then
     begin
       FTail := 0;
       FHead := 0;
+      OldCapacity := FCapacity.Native;
       FCapacity.Native := Value;
       ReallocMem(FItems, Value * SizeOf(T));
+      if Value > OldCapacity then
+        FillChar(FItems[OldCapacity], (Value - OldCapacity) * SizeOf(T), 0);
     end
-    else if (FTail <= FHead) then
+  else
+  if (FTail <= FHead) then
     begin
       if (FTail <> 0) then
       begin
@@ -18535,23 +18541,29 @@ begin
         Dec(FHead, FTail);
         FTail := 0;
       end;
+      OldCapacity := FCapacity.Native;
       FCapacity.Native := Value;
       ReallocMem(FItems, Value * SizeOf(T));
+      if Value > OldCapacity then
+        FillChar(FItems[OldCapacity], (Value - OldCapacity) * SizeOf(T), 0);
     end
     else
     begin
       Dif := NativeInt(Value) - FCapacity.Native;
       NewTail := FTail + Dif;
 
+      OldCapacity := FCapacity.Native;
+
       if (Dif > 0) then
       begin
         ReallocMem(FItems, Value * SizeOf(T));
-        System.Move(FItems[FTail], FItems[NewTail], (FCapacity.Native - FTail) * SizeOf(T));
+        System.Move(FItems[FTail], FItems[NewTail], (OldCapacity - FTail) * SizeOf(T));
+        FillChar(FItems[OldCapacity], (Value - OldCapacity) * SizeOf(T), 0);
       end
       else
     //if (Dif < 0) then
       begin
-        System.Move(FItems[FTail], FItems[NewTail], (FCapacity.Native - FTail) * SizeOf(T));
+        System.Move(FItems[FTail], FItems[NewTail], (OldCapacity - FTail) * SizeOf(T));
         ReallocMem(FItems, Value * SizeOf(T));
       end;
 

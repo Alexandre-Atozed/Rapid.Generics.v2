@@ -66,6 +66,8 @@ type
     procedure TestAddRange;
     [Test]
     procedure TestDeleteRange;
+    [Test]
+    procedure TestShrink;
   end;
   {$ENDIF TEST_INTLIST}
 
@@ -138,6 +140,8 @@ type
     procedure TestStringPack;
     [Test]
     procedure TestStringAddRange;
+    [Test]
+    procedure TestShrink;
   end;
   {$ENDIF TEST_STRINGLIST}
 
@@ -225,6 +229,8 @@ type
     procedure TestAddRange;
     [Test]
     procedure TestDeleteRange;
+    [Test]
+    procedure TestShrink;
   end;
 
   // Test for lists of records with static arrays
@@ -426,6 +432,8 @@ type
     procedure TestMany;
     [Test]
     procedure TestHuge;
+    [Test]
+    procedure TestShrink;
   end;
 
   TTestObjectList = class(TObjectList<TTestObject>)
@@ -520,6 +528,15 @@ begin
   Assert.IsTrue(FList.Remove(10) >= 0);
   Assert.AreEqual(Integer(1), Integer(FList.Count));
   Assert.AreEqual(Integer(20), FList[0]);
+end;
+
+procedure TListTestInteger.TestShrink;   // No expected leak here anyway because it's not a managed type
+begin
+  FList.Add(10);
+  FList.Add(20);
+  Assert.AreEqual(Integer(2), Integer(FList.Count));
+  FList.Count := 1;
+  Assert.AreEqual(Integer(1), Integer(FList.Count));
 end;
 
 procedure TListTestInteger.TestDelete;
@@ -864,6 +881,16 @@ end;
 procedure TListTestString.TearDown;
 begin
   FreeAndNil(FList);
+end;
+
+// Leak here is possible if TList<> is defective and doesn't handle managed types properly when shrinking
+procedure TListTestString.TestShrink;
+begin
+  FList.Add('Hello');
+  FList.Add('World');
+  Assert.AreEqual(Integer(2), Integer(FList.Count));
+  FList.Count := 1;
+  Assert.AreEqual(Integer(1), Integer(FList.Count));
 end;
 
 procedure TListTestString.TestStringAdd;
@@ -1411,6 +1438,24 @@ begin
   Assert.AreEqual(1, Integer(FList.Count));
   Assert.AreEqual(20, FList[0].x);
   Assert.AreEqual('World', FList[0].y);
+end;
+
+// Leak here is possible if TList<> is defective and doesn't handle managed types properly when shrinking
+procedure TListTestRecordString.TestShrink;
+var
+  Rec1, Rec2: TTestRecordString;
+begin
+  Rec1.x := 10;
+  Rec1.y := 'Hello';
+  Rec2.x := 20;
+  Rec2.y := 'World';
+  FList.Add(Rec1);
+  FList.Add(Rec2);
+  Assert.AreEqual(2, Integer(FList.Count));
+  FList.Count := 1;
+  Assert.AreEqual(1, Integer(FList.Count));
+  Assert.AreEqual(10, FList[0].x);
+  Assert.AreEqual('Hello', FList[0].y);
 end;
 
 procedure TListTestRecordString.TestDelete;
@@ -2662,6 +2707,21 @@ begin
   // No memory leak here
   FList.Clear;
   Assert.AreEqual(0, FList.Count);
+end;
+
+// Leak here is possible if TObjectList<> is defective and doesn't handle managed types properly when shrinking
+procedure TObjectListTestObject.TestShrink;
+var
+  Obj10, Obj20: TTestObject;
+begin
+  Obj10 := TTestObject.Create(10);
+  Obj20 := TTestObject.Create(20);
+  FList.OwnsObjects := True;
+  FList.Add(Obj10);
+  FList.Add(Obj20);
+  Assert.AreEqual(2, FList.Count);
+  FList.Count := 1;
+  Assert.AreEqual(1, FList.Count);
 end;
 
 procedure TObjectListTestObject.TestPack;
