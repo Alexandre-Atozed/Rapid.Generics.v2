@@ -27,7 +27,7 @@ The original library could not be used in a real application due to several issu
 * Local variables renamed for clarity (e.g., distinguishing them from properties like `Count`)
 * Unused code removed
 * Warnings silenced (most via `{$WARNINGS OFF}` when the compiler cannot detect variable initialization inside a `case` statement)
-* Fixed AV during inteface clean up (Creating dictionaries/lists with interfaces would cause AV when destroying)
+* Fixed AV during interface clean up (Creating dictionaries/lists with interfaces would cause AV when destroying)
 * Fixed destruction of objects owned by TObjectDictionary<>, TObjectList<>, TObjectStack<>, TObjectQueue<> when a descendant class overrides Notify() method
 * Fixed TObjectStack Pop method
 
