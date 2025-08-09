@@ -388,6 +388,40 @@ type
     procedure TestDeleteRange;
   end;
 
+  T40ByteRecord = record
+    a, b, c, d: Int64;
+    x: Double;
+  end;
+
+  TListTest40ByteRecord = class
+  private
+    FList: TList<T40ByteRecord>;
+    function CreateRecord(i: Integer; x: Double): T40ByteRecord;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAddRecord;
+    [Test]
+    procedure TestRemoveRecord;
+    [Test]
+    procedure TestRecordFieldsPreserved;
+    [Test]
+    procedure TestListCount;
+    [Test]
+    procedure TestClearList;
+    [Test]
+    procedure TestBinarySearch;
+    [Test]
+    procedure TestBinarySearchHuge;
+    [Test]
+    procedure TestAddRange;
+    [Test]
+    procedure TestDeleteRange;
+  end;
+
   {$ENDIF TEST_RECORDLIST}
 
   {$IFDEF TEST_OBJECTLIST}
@@ -483,7 +517,8 @@ type
 implementation
 
 uses
-  Variants;
+  Variants,
+  Math;
 
 const
   MANY_ITEMS_COUNT = 1000;
@@ -3047,6 +3082,517 @@ begin
   inherited;
 end;
 
+{ TListTest40ByteRecord }
+
+procedure PopulateListRandom(AList: TList<T40ByteRecord>);
+const
+  Data: array[0..279] of record
+    Index: Int64;
+    Value: Double;
+  end = (
+    (Index: 0; Value: 0.001650),
+    (Index: 1; Value: 1.001650),
+    (Index: 2; Value: 2.001650),
+    (Index: 3; Value: 4.001650),
+    (Index: 4; Value: 3.001650),
+    (Index: 5; Value: 2.001650),
+    (Index: 6; Value: 2.001650),
+    (Index: 7; Value: 2.001650),
+    (Index: 8; Value: 2.001650),
+    (Index: 9; Value: 2.001650),
+    (Index: 10; Value: 2.001650),
+    (Index: 11; Value: 2.001650),
+    (Index: 12; Value: 2.001650),
+    (Index: 13; Value: 2.001650),
+    (Index: 14; Value: 2.001650),
+    (Index: 15; Value: 2.001650),
+    (Index: 16; Value: 2.001650),
+    (Index: 17; Value: 2.001650),
+    (Index: 18; Value: 57.952785),
+    (Index: 19; Value: 58.027480),
+    (Index: 20; Value: 57.562582),
+    (Index: 21; Value: 57.506470),
+    (Index: 22; Value: 2.001650),
+    (Index: 23; Value: 58.134150),
+    (Index: 24; Value: 57.380290),
+    (Index: 25; Value: 57.790051),
+    (Index: 26; Value: 2.001650),
+    (Index: 27; Value: 2.001650),
+    (Index: 28; Value: 2.001650),
+    (Index: 29; Value: 2.001650),
+    (Index: 30; Value: 2.001650),
+    (Index: 31; Value: 57.924468),
+    (Index: 32; Value: 57.894126),
+    (Index: 33; Value: 2.001650),
+    (Index: 34; Value: 2.001650),
+    (Index: 35; Value: 2.001650),
+    (Index: 36; Value: 2.001650),
+    (Index: 37; Value: 2.001650),
+    (Index: 38; Value: 2.001650),
+    (Index: 39; Value: 57.861291),
+    (Index: 40; Value: 2.001650),
+    (Index: 41; Value: 2.001650),
+    (Index: 42; Value: 2.001650),
+    (Index: 43; Value: 2.001650),
+    (Index: 44; Value: 2.001650),
+    (Index: 45; Value: 2.001650),
+    (Index: 46; Value: 2.001650),
+    (Index: 47; Value: 2.001650),
+    (Index: 48; Value: 2.001650),
+    (Index: 49; Value: 2.001650),
+    (Index: 50; Value: 2.001650),
+    (Index: 51; Value: 2.001650),
+    (Index: 52; Value: 2.001650),
+    (Index: 53; Value: 2.001650),
+    (Index: 54; Value: 2.001650),
+    (Index: 55; Value: 2.001650),
+    (Index: 56; Value: 2.001650),
+    (Index: 57; Value: 2.001650),
+    (Index: 58; Value: 2.001650),
+    (Index: 59; Value: 2.001650),
+    (Index: 60; Value: 2.001650),
+    (Index: 61; Value: 2.001650),
+    (Index: 62; Value: 2.001650),
+    (Index: 63; Value: 2.001650),
+    (Index: 64; Value: 2.001650),
+    (Index: 65; Value: 2.001650),
+    (Index: 66; Value: 2.001650),
+    (Index: 67; Value: 2.001650),
+    (Index: 68; Value: 2.001650),
+    (Index: 69; Value: 2.001650),
+    (Index: 70; Value: 2.001650),
+    (Index: 71; Value: 57.229394),
+    (Index: 72; Value: 57.308523),
+    (Index: 73; Value: 2.001650),
+    (Index: 74; Value: 2.001650),
+    (Index: 75; Value: 58.844215),
+    (Index: 76; Value: 2.001650),
+    (Index: 77; Value: 2.001650),
+    (Index: 78; Value: 56.776358),
+    (Index: 79; Value: 2.001650),
+    (Index: 80; Value: 57.750084),
+    (Index: 81; Value: 2.001650),
+    (Index: 82; Value: 58.835284),
+    (Index: 83; Value: 2.001650),
+    (Index: 84; Value: 58.830818),
+    (Index: 85; Value: 2.001650),
+    (Index: 86; Value: 57.141201),
+    (Index: 87; Value: 2.001650),
+    (Index: 88; Value: 58.844215),
+    (Index: 89; Value: 58.848681),
+    (Index: 90; Value: 58.857613),
+    (Index: 91; Value: 58.857613),
+    (Index: 92; Value: 58.963006),
+    (Index: 93; Value: 58.839750),
+    (Index: 94; Value: 58.839750),
+    (Index: 95; Value: 58.839750),
+    (Index: 96; Value: 58.963006),
+    (Index: 97; Value: 2.001650),
+    (Index: 98; Value: 56.922141),
+    (Index: 99; Value: 58.214535),
+    (Index: 100; Value: 56.571091),
+    (Index: 101; Value: 58.049471),
+    (Index: 102; Value: 58.830818),
+    (Index: 103; Value: 58.848681),
+    (Index: 104; Value: 2.001650),
+    (Index: 105; Value: 58.268125),
+    (Index: 106; Value: 58.087428),
+    (Index: 107; Value: 58.068916),
+    (Index: 108; Value: 57.826707),
+    (Index: 109; Value: 57.614811),
+    (Index: 110; Value: 58.174342),
+    (Index: 111; Value: 58.227932),
+    (Index: 112; Value: 58.254727),
+    (Index: 113; Value: 58.004418),
+    (Index: 114; Value: 58.201137),
+    (Index: 115; Value: 58.187740),
+    (Index: 116; Value: 58.281522),
+    (Index: 117; Value: 2.001650),
+    (Index: 118; Value: 57.707747),
+    (Index: 119; Value: 57.662765),
+    (Index: 120; Value: 57.445955),
+    (Index: 121; Value: 58.147547),
+    (Index: 122; Value: 58.294920),
+    (Index: 123; Value: 2.001650),
+    (Index: 124; Value: 2.001650),
+    (Index: 125; Value: 58.104396),
+    (Index: 126; Value: 2.001650),
+    (Index: 127; Value: 57.979757),
+    (Index: 128; Value: 2.001650),
+    (Index: 129; Value: 57.040994),
+    (Index: 130; Value: 2.001650),
+    (Index: 131; Value: 2.001650),
+    (Index: 132; Value: 58.119632),
+    (Index: 133; Value: 58.348509),
+    (Index: 134; Value: 58.388702),
+    (Index: 135; Value: 2.001650),
+    (Index: 136; Value: 58.160945),
+    (Index: 137; Value: 58.241330),
+    (Index: 138; Value: 58.321714),
+    (Index: 139; Value: 58.482484),
+    (Index: 140; Value: 58.495881),
+    (Index: 141; Value: 58.428894),
+    (Index: 142; Value: 58.308317),
+    (Index: 143; Value: 58.402099),
+    (Index: 144; Value: 58.683446),
+    (Index: 145; Value: 58.375304),
+    (Index: 146; Value: 58.361907),
+    (Index: 147; Value: 58.656651),
+    (Index: 148; Value: 58.335112),
+    (Index: 149; Value: 58.643253),
+    (Index: 150; Value: 58.469086),
+    (Index: 151; Value: 58.455689),
+    (Index: 152; Value: 58.603061),
+    (Index: 153; Value: 58.415497),
+    (Index: 154; Value: 58.522676),
+    (Index: 155; Value: 58.589664),
+    (Index: 156; Value: 59.152357),
+    (Index: 157; Value: 58.549471),
+    (Index: 158; Value: 58.576266),
+    (Index: 159; Value: 58.562869),
+    (Index: 160; Value: 58.710241),
+    (Index: 161; Value: 58.750433),
+    (Index: 162; Value: 58.629856),
+    (Index: 163; Value: 59.232742),
+    (Index: 164; Value: 59.741845),
+    (Index: 165; Value: 59.380114),
+    (Index: 166; Value: 58.509279),
+    (Index: 167; Value: 58.670048),
+    (Index: 168; Value: 58.442292),
+    (Index: 169; Value: 58.723638),
+    (Index: 170; Value: 58.763831),
+    (Index: 171; Value: 58.911203),
+    (Index: 172; Value: 59.125562),
+    (Index: 173; Value: 58.536074),
+    (Index: 174; Value: 58.616459),
+    (Index: 175; Value: 58.777228),
+    (Index: 176; Value: 58.817420),
+    (Index: 177; Value: 58.857613),
+    (Index: 178; Value: 58.844215),
+    (Index: 179; Value: 58.830818),
+    (Index: 180; Value: 58.871010),
+    (Index: 181; Value: 58.804023),
+    (Index: 182; Value: 58.897805),
+    (Index: 183; Value: 58.884408),
+    (Index: 184; Value: 58.924600),
+    (Index: 185; Value: 58.964792),
+    (Index: 186; Value: 58.951395),
+    (Index: 187; Value: 59.018382),
+    (Index: 188; Value: 58.978190),
+    (Index: 189; Value: 59.071972),
+    (Index: 190; Value: 59.004985),
+    (Index: 191; Value: 58.937998),
+    (Index: 192; Value: 59.098767),
+    (Index: 193; Value: 58.737036),
+    (Index: 194; Value: 59.112164),
+    (Index: 195; Value: 58.991587),
+    (Index: 196; Value: 59.031780),
+    (Index: 197; Value: 59.179152),
+    (Index: 198; Value: 58.790625),
+    (Index: 199; Value: 59.045177),
+    (Index: 200; Value: 59.085370),
+    (Index: 201; Value: 59.058575),
+    (Index: 202; Value: 59.219344),
+    (Index: 203; Value: 59.339921),
+    (Index: 204; Value: 59.326524),
+    (Index: 205; Value: 58.696843),
+    (Index: 206; Value: 59.138959),
+    (Index: 207; Value: 59.701653),
+    (Index: 208; Value: 59.192549),
+    (Index: 209; Value: 59.259537),
+    (Index: 210; Value: 59.433703),
+    (Index: 211; Value: 59.527486),
+    (Index: 212; Value: 59.246139),
+    (Index: 213; Value: 59.313126),
+    (Index: 214; Value: 59.487293),
+    (Index: 215; Value: 59.366716),
+    (Index: 216; Value: 59.286331),
+    (Index: 217; Value: 59.393511),
+    (Index: 218; Value: 59.540883),
+    (Index: 219; Value: 59.473896),
+    (Index: 220; Value: 59.299729),
+    (Index: 221; Value: 2.001650),
+    (Index: 222; Value: 59.205947),
+    (Index: 223; Value: 2.001650),
+    (Index: 224; Value: 59.406909),
+    (Index: 225; Value: 59.500691),
+    (Index: 226; Value: 59.648063),
+    (Index: 227; Value: 59.621268),
+    (Index: 228; Value: 2.001650),
+    (Index: 229; Value: 2.001650),
+    (Index: 230; Value: 2.001650),
+    (Index: 231; Value: 59.581076),
+    (Index: 232; Value: 59.514088),
+    (Index: 233; Value: 2.001650),
+    (Index: 234; Value: 2.001650),
+    (Index: 235; Value: 59.420306),
+    (Index: 236; Value: 59.447101),
+    (Index: 237; Value: 59.607870),
+    (Index: 238; Value: 59.460498),
+    (Index: 239; Value: 59.353319),
+    (Index: 240; Value: 59.916012),
+    (Index: 241; Value: 59.688255),
+    (Index: 242; Value: 59.768640),
+    (Index: 243; Value: 59.956204),
+    (Index: 244; Value: 59.755242),
+    (Index: 245; Value: 59.715050),
+    (Index: 246; Value: 59.594473),
+    (Index: 247; Value: 59.795435),
+    (Index: 248; Value: 59.728448),
+    (Index: 249; Value: 59.661460),
+    (Index: 250; Value: 59.862422),
+    (Index: 251; Value: 59.634665),
+    (Index: 252; Value: 59.782037),
+    (Index: 253; Value: 59.822230),
+    (Index: 254; Value: 59.942807),
+    (Index: 255; Value: 59.902615),
+    (Index: 256; Value: 59.889217),
+    (Index: 257; Value: 59.554281),
+    (Index: 258; Value: 59.272934),
+    (Index: 259; Value: 59.567678),
+    (Index: 260; Value: 59.165754),
+    (Index: 261; Value: 59.929409),
+    (Index: 262; Value: 58.834391),
+    (Index: 263; Value: 58.848681),
+    (Index: 264; Value: 59.835627),
+    (Index: 265; Value: 59.875820),
+    (Index: 266; Value: 59.964358),
+    (Index: 267; Value: 59.849025),
+    (Index: 268; Value: 59.674858),
+    (Index: 269; Value: 58.830818),
+    (Index: 270; Value: 59.808832),
+    (Index: 271; Value: 58.857613),
+    (Index: 272; Value: 58.832604),
+    (Index: 273; Value: 58.963006),
+    (Index: 274; Value: 58.836177),
+    (Index: 275; Value: 58.830818),
+    (Index: 276; Value: 58.839750),
+    (Index: 277; Value: 58.839750),
+    (Index: 278; Value: 58.839750),
+    (Index: 279; Value: 58.837963)
+  );
+var
+  Temp: TArray<T40ByteRecord>;
+  i, j: Integer;
+  R: T40ByteRecord;
+begin
+  SetLength(Temp, Length(Data));
+  for i := 0 to High(Data) do
+  begin
+    Temp[i].a := Data[i].Index;
+    Temp[i].b := 0;
+    Temp[i].c := 0;
+    Temp[i].d := 0;
+    Temp[i].x := Data[i].Value;
+  end;
+
+  Randomize;
+  for i := High(Temp) downto 1 do
+  begin
+    j := Random(i + 1);
+    R := Temp[i];
+    Temp[i] := Temp[j];
+    Temp[j] := R;
+  end;
+
+  AList.Clear;
+  for i := 0 to High(Temp) do
+    AList.Add(Temp[i]);
+end;
+
+procedure SaveToTextFile(AList: TList<T40ByteRecord>; const AFileName: string);
+var
+  SL: TStringList;
+  I: Integer;
+  Item: T40ByteRecord;
+begin
+  SL := TStringList.Create;
+  try
+    for I := 0 to AList.Count - 1 do
+    begin
+      Item := AList[I];
+      SL.Add(Format('%d,%.d,%.d,%.d,%.d,%.6f',
+        [I, Item.a, Item.b, Item.c, Item.d, Item.x]));
+    end;
+    SL.SaveToFile(AFileName, TEncoding.UTF8);
+  finally
+    SL.Free;
+  end;
+end;
+
+procedure TListTest40ByteRecord.Setup;
+begin
+  FList := TList<T40ByteRecord>.Create;
+end;
+
+procedure TListTest40ByteRecord.TearDown;
+begin
+  FreeAndNil(FList);
+end;
+
+function TListTest40ByteRecord.CreateRecord(i: Integer; x: Double): T40ByteRecord;
+var
+  Rec: T40ByteRecord;
+begin
+  Rec.a := i;
+  Rec.b := 0;
+  Rec.c := 0;
+  Rec.d  := 0;
+  Rec.x := x;
+
+  Result := Rec;
+end;
+
+procedure TListTest40ByteRecord.TestBinarySearch;
+var
+  Comparer: IComparer<T40ByteRecord>;
+  Index: Integer;
+  Rec1, Rec2, Rec3: T40ByteRecord;
+  SearchRec: T40ByteRecord;
+begin
+  Comparer := TComparer<T40ByteRecord>.Construct(
+    function(const Left, Right: T40ByteRecord): Integer
+    begin
+      Result := CompareValue(Left.a, Right.a);
+    end);
+
+  Rec1 := CreateRecord(1, 1.1);
+  Rec2 := CreateRecord(3, 3.3);
+  Rec3 := CreateRecord(2, 2.2);
+
+  FList.AddRange([Rec1, Rec2, Rec3]);
+  FList.Sort(Comparer);
+
+  SearchRec := CreateRecord(2, 0);
+  Assert.IsTrue(FList.BinarySearch(SearchRec, Index, Comparer));
+  Assert.AreEqual(1, Index);
+
+  SearchRec := CreateRecord(5, 0);
+  Assert.IsFalse(FList.BinarySearch(SearchRec, Index, Comparer));
+end;
+
+procedure TListTest40ByteRecord.TestBinarySearchHuge;
+var
+  i: Integer;
+  Comparer: IComparer<T40ByteRecord>;
+begin
+  Comparer := TComparer<T40ByteRecord>.Construct(
+    function(const aLeft, aRight: T40ByteRecord): Integer
+    begin
+        if IsNan(aLeft.x) and not IsNan(aRight.x) then
+          Result := -1
+        else if not IsNan(aLeft.x) and IsNan(aRight.x) then
+          Result := 1
+        else if IsNan(aLeft.x) and isNan(aRight.x) then
+          Result := 0
+        else
+          Result := CompareValue(aLeft.x, aRight.x);
+    end);
+
+  PopulateListRandom(FList);
+
+  // Sort
+  FList.Sort(Comparer);
+
+  for i := 0 to FList.Count - 2 do
+    Assert.IsTrue(FList[i].x <= FList[i + 1].x,
+      Format('List not sorted at index %d: %f > %f', [i, FList[i].x, FList[i + 1].x]));
+
+
+  // Binary search tests
+  Assert.IsTrue(FList.BinarySearch(CreateRecord(0, 0.001650), i, Comparer), 'Should find existing record');
+  Assert.AreEqual(Integer(0), i, 'Index should be 0 for x=0.001650');
+
+  Assert.IsTrue(FList.BinarySearch(CreateRecord(279, 59.964358), i, Comparer), 'Should find existing record');
+  Assert.AreEqual(279, i, 'Index should be 279 for x=59.964358');
+
+  Assert.IsFalse(FList.BinarySearch(CreateRecord(0, 8), i, Comparer), 'Should not find non-existing record');
+end;
+
+procedure TListTest40ByteRecord.TestAddRecord;
+var
+  Rec: T40ByteRecord;
+begin
+  Rec := CreateRecord(1, 1.1);
+  FList.Add(Rec);
+  Assert.AreEqual(1, FList.Count);
+  Assert.AreEqual(Rec.a, FList[0].a);
+  Assert.AreEqual(Rec.x, FList[0].x);
+end;
+
+procedure TListTest40ByteRecord.TestRemoveRecord;
+var
+  Rec1, Rec2: T40ByteRecord;
+begin
+  Rec1 := CreateRecord(1, 1.1);
+  Rec2 := CreateRecord(2, 2.2);
+  FList.AddRange([Rec1, Rec2]);
+  Assert.AreEqual(2, FList.Count);
+  FList.Remove(Rec1);
+  Assert.AreEqual(1, FList.Count);
+  Assert.AreEqual(Rec2.a, FList[0].a);
+end;
+
+procedure TListTest40ByteRecord.TestRecordFieldsPreserved;
+var
+  Rec: T40ByteRecord;
+begin
+  Rec := CreateRecord(1234, 5.67);
+  FList.Add(Rec);
+  Assert.AreEqual(Int64(1234), FList[0].a);
+  Assert.AreEqual(5.67, FList[0].x, 0.00001);
+  // Other fields should be 0 as per CreateRecord
+  Assert.AreEqual(Int64(0), FList[0].b);
+  Assert.AreEqual(Int64(0), FList[0].c);
+  Assert.AreEqual(Int64(0), FList[0].d);
+end;
+
+procedure TListTest40ByteRecord.TestListCount;
+begin
+  Assert.AreEqual(0, FList.Count);
+  FList.Add(CreateRecord(1, 1.1));
+  Assert.AreEqual(1, FList.Count);
+  FList.Add(CreateRecord(2, 2.2));
+  Assert.AreEqual(2, FList.Count);
+end;
+
+procedure TListTest40ByteRecord.TestClearList;
+begin
+  FList.Add(CreateRecord(1, 1.1));
+  FList.Add(CreateRecord(2, 2.2));
+  Assert.AreEqual(2, FList.Count);
+  FList.Clear;
+  Assert.AreEqual(0, FList.Count);
+end;
+
+procedure TListTest40ByteRecord.TestAddRange;
+var
+  Rec1, Rec2: T40ByteRecord;
+begin
+  Rec1 := CreateRecord(1, 1.1);
+  Rec2 := CreateRecord(2, 2.2);
+  FList.AddRange([Rec1, Rec2]);
+  Assert.AreEqual(2, FList.Count);
+  Assert.AreEqual(Rec1.a, FList[0].a);
+  Assert.AreEqual(Rec2.x, FList[1].x);
+end;
+
+procedure TListTest40ByteRecord.TestDeleteRange;
+var
+  Rec1, Rec2, Rec3: T40ByteRecord;
+begin
+  Rec1 := CreateRecord(1, 1.1);
+  Rec2 := CreateRecord(2, 2.2);
+  Rec3 := CreateRecord(3, 3.3);
+  FList.AddRange([Rec1, Rec2, Rec3]);
+
+  // Delete two elements starting at index 0
+  FList.DeleteRange(0, 2);
+
+  Assert.AreEqual(1, FList.Count);
+  Assert.AreEqual(Integer(3), Integer(FList[0].a));
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TListTestInteger);
   TDUnitX.RegisterTestFixture(TListTestDouble);
@@ -3056,6 +3602,7 @@ initialization
   TDUnitX.RegisterTestFixture(TListTestRecordStaticArray);
   TDUnitX.RegisterTestFixture(TListTestRecordDynamicArray);
   TDUnitX.RegisterTestFixture(TListTestRecordComplex);
+  TDUnitX.RegisterTestFixture(TListTest40ByteRecord);
   TDUnitX.RegisterTestFixture(TObjectListTestObject);
   TDUnitX.RegisterTestFixture(TObjectListDescendantTestObject);
 

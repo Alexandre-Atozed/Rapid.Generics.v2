@@ -1304,7 +1304,8 @@ type
       NativeInt); static;
     class function MedianOfThree<T>(var A, B, C: T; Comparer: IComparer<T>): T; static; {$IFDEF HAS_INLINE} inline;
       {$ENDIF}
-    class function SortItemPivot<T>(const I, J: Pointer): Pointer; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+    class function SortItemPivot<T>(const I, J: Pointer): Pointer; overload; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+    class function SortItemPivot<T>(const I, J: Pointer; const Comparer: IComparer<T>): Pointer; overload; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class function SortItemNext<T>(const StackItem, I, J: Pointer): Pointer; static; {$IFDEF HAS_INLINE} inline;
       {$ENDIF}
     class function SortItemCount<T>(const I, J: Pointer): NativeInt; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
@@ -2134,6 +2135,12 @@ type
 function ListIndexErrorMsg(AIndex, AMaxIndex: Integer; AListObjName: string = ''): string;
 procedure ErrorArgumentOutOfRange; overload;
 procedure ErrorArgumentOutOfRange(AIndex, AMaxIndex: NativeInt; AListObj: TObject = nil); overload;
+
+{$IFNDEF CPUX86}
+  {$IFNDEF HAS_INLINE}
+function Swap(const X: NativeUInt): NativeUInt; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+  {$ENDIF}
+{$ENDIF}
 
 implementation
 
@@ -10991,7 +10998,7 @@ begin
     T(Destination^) := T(Source^);
   end
   else
-    {$ENDIF}
+  {$ENDIF}
     with TLMemory(Destination^), TRMemory(Source^) do
       case SizeOf(T) of
         0: ;
@@ -11051,11 +11058,13 @@ begin
         repeat
           LNatives[Index] := RNatives[Index];
           Inc(Index);
-        until (Index = SizeOf(T) div SizeOf(NativeUInt) - 1);
+        // The loop condition is changed from '=' to '>=' to ensure all full chunks are copied.
+        until (Index >= SizeOf(T) div SizeOf(NativeUInt));
 
         if (SizeOf(T) and (SizeOf(NativeUInt) - 1) <> 0) then
         begin
-          Index := SizeOf(T) div SizeOf(NativeUInt) - 1;
+          // Corrected index calculation for the remainder is by removing the (-1).
+          Index := SizeOf(T) div SizeOf(NativeUInt);
           case SizeOf(T) and (SizeOf(NativeUInt) - 1) of
             1: LNatives1[Index] := RNatives1[Index];
             2: LNatives2[Index] := RNatives2[Index];
@@ -11349,7 +11358,76 @@ begin
   end;
 end;
 
-// AM TODO: Use a median of three in order to obtain the pivot
+// AM TODO: This version uses a median of three in order to obtain the pivot
+// but it's not being used currently
+class function TArray.SortItemPivot<T>(const I, J: Pointer; const Comparer: IComparer<T>): Pointer;
+var
+  First, Middle, Last: Pointer;
+  Index: NativeInt;
+  Count: NativeInt;
+  FirstValue, MiddleValue, LastValue, MedianValue: T;
+begin
+  // number of elements in the segment
+  Count := (NativeInt(J) - NativeInt(I)) div SizeOf(T) + 1;
+
+  if Count <= 1 then
+    Exit(I); // Only one element, return it as pivot
+  if Count = 2 then
+  begin
+    // For two elements, return the smaller one
+    FirstValue := TRAIIHelper<T>.P(I)^;
+    LastValue := TRAIIHelper<T>.P(J)^;
+    if Comparer.Compare(FirstValue, LastValue) <= 0 then
+      Exit(I)
+    else
+      Exit(J);
+  end;
+
+  // Middle element index
+  if (SizeOf(T) and (SizeOf(T) - 1) = 0) and (SizeOf(T) <= 256) then
+  begin
+    Index := NativeInt(J) - NativeInt(I);
+    case SizeOf(T) of
+      0, 1: Index := Index shr 1;
+      2: Index := Index shr 2;
+      4: Index := Index shr 3;
+      8: Index := Index shr 4;
+      16: Index := Index shr 5;
+      32: Index := Index shr 6;
+      64: Index := Index shr 7;
+      128: Index := Index shr 8;
+    else
+      // 256
+      Index := Index shr 9;
+    end;
+  end
+  else
+  begin
+    Index := NativeInt(Round((NativeInt(J) - NativeInt(I)) * (1 / SizeOf(T)))) shr 1;
+  end;
+
+  // Get pointers to first, middle, and last elements
+  First := I;
+  Middle := TRAIIHelper<T>.P(I) + Index;
+  Last := J;
+
+  // Get values for median-of-three
+  FirstValue := TRAIIHelper<T>.P(First)^;
+  MiddleValue := TRAIIHelper<T>.P(Middle)^;
+  LastValue := TRAIIHelper<T>.P(Last)^;
+
+  // Find the median value using MedianOfThree
+  MedianValue := TArray.MedianOfThree<T>(FirstValue, MiddleValue, LastValue, Comparer);
+
+  // Return the pointer to the element that matches the median value
+  if Comparer.Compare(MedianValue, FirstValue) = 0 then
+    Result := First
+  else if Comparer.Compare(MedianValue, MiddleValue) = 0 then
+    Result := Middle
+  else
+    Result := Last;
+end;
+
 class function TArray.SortItemPivot<T>(const I, J: Pointer): Pointer;
 var
   Index: NativeInt;
