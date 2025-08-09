@@ -2137,9 +2137,7 @@ procedure ErrorArgumentOutOfRange; overload;
 procedure ErrorArgumentOutOfRange(AIndex, AMaxIndex: NativeInt; AListObj: TObject = nil); overload;
 
 {$IFNDEF CPUX86}
-  {$IFNDEF HAS_INLINE}
 function Swap(const X: NativeUInt): NativeUInt; {$IFDEF HAS_INLINE} inline; {$ENDIF}
-  {$ENDIF}
 {$ENDIF}
 
 implementation
@@ -2193,7 +2191,7 @@ end;
 
 // x86 architecture compatibility (Word mode)
 {$IFNDEF CPUX86}
-function Swap(const X: NativeUInt): NativeUInt; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+function Swap(const X: NativeUInt): NativeUInt;
 begin
   Result := (Byte(X) shl 8) + Byte(X shr 8);
 end;
