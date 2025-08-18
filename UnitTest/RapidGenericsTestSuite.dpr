@@ -19,12 +19,10 @@ program RapidGenericsTestSuite;
 uses
   {$IFDEF CHECK_MEM_LEAKS}
   FastMM4 in '..\3rdParty\FastMM4\FastMM4.pas',
-  {$ENDIF}
+  {$ENDIF }
   {$IFDEF UseVCL}
   VCL.Forms,
-  // Uncomment the line below (and fix the if necessary) in case the compiler cannot find DUnitX.Loggers.GUI.VCL.pas or dfm files
-  DUnitX.Loggers.GUI.VCL
-    {in 'c:\program files (x86)\embarcadero\studio\23.0\source\DUnitX\DUnitX.Loggers.GUI.VCL.pas'},
+  DUnitX.Loggers.GUI.VCL {in 'c: program files (x86)\embarcadero\studio\23.0\source\DUnitX\DUnitX.Loggers.GUI.VCL.pas'},
   {$ENDIF }
   {$IFDEF UseFMX}
   FMX.Forms,
@@ -55,7 +53,8 @@ uses
   uDictionaryTest in 'uDictionaryTest.pas',
   uStackTest in 'uStackTest.pas',
   uQueueTest in 'uQueueTest.pas',
-  uTestTypes in 'uTestTypes.pas';
+  uTestTypes in 'uTestTypes.pas',
+  uListRecTest in 'uListRecTest.pas';
 
 {$R *.res}
 
