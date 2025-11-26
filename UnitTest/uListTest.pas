@@ -1057,8 +1057,6 @@ begin
 end;
 
 procedure TListTestString.TestSortDescending;
-var
-  Index: Integer;
 begin
   FList.Clear;
 
@@ -1712,7 +1710,6 @@ end;
 
 procedure TListTestRecordString.TestSortDescending;
 var
-  Index: Integer;
   Rec1, Rec2, Rec3, Rec4, Rec5, SearchRec: TTestRecordString;
 begin
   Rec1.x := 1;
@@ -2062,7 +2059,6 @@ end;
 
 procedure TListTestRecordStaticArray.TestSortDescending;
 var
-  Index: Integer;
   Rec1, Rec2, Rec3, Rec4, Rec5, SearchRec: TTestRecordStaticArray;
 begin
   Rec1.x := 1;
@@ -2392,8 +2388,7 @@ end;
 
 procedure TListTestRecordDynamicArray.TestSortDescending;
 var
-  Index: Integer;
-  Rec1, Rec2, Rec3, Rec4, Rec5, SearchRec: TTestRecordDynamicArray;
+  Rec1, Rec2, Rec3, Rec4, Rec5: TTestRecordDynamicArray;
 begin
   Rec1.x := 1;
   FillDynamicArray(Rec1.y);
