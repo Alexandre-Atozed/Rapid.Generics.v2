@@ -4,6 +4,7 @@ program RapidGenericsTestSuite;
 {$DEFINE UseVCL}
 {.$DEFINE UseFMX}
 {.$DEFINE UseWinConsole}
+{.$DEFINE UseTestInSight}
 ////////////////////////////////////////////////////////////////
 
 {.$DEFINE CHECK_MEM_LEAKS}
@@ -29,9 +30,14 @@ uses
   {$ENDIF }
   {$IFDEF UseConsole}
   DUnitX.ConsoleWriter.Base,
+  DUnitX.Loggers.Console,
+  DUnitX.Loggers.XML.NUnit,
   {$ENDIF }
   {$IFDEF UseWinConsole}
   DUnitX.Windows.Console,
+  {$ENDIF }
+  {$IFDEF UseTestInSight}
+  TestInsight.DUnitX,
   {$ENDIF }
   System.SysUtils,
   DUnitX.Generics,
@@ -66,48 +72,57 @@ begin
   GUIVCLTestRunner.Font.Name := 'IBM Plex Sans';
   GUIVCLTestRunner.Font.Size := 10;
   Application.Run;
-  {$ENDIF}
+{$ENDIF}
+
 /////////////////////////////////////////////////////////////////////////
-  {$IFDEF UseFMX}
-  begin
-    Application.Initialize;
-    Application.CreateForm(TGUIXTestRunner, GUIXTestRunner);
-    Application.Run;
-    {$ENDIF}
+{$IFDEF UseFMX}
+begin
+  Application.Initialize;
+  Application.CreateForm(TGUIXTestRunner, GUIXTestRunner);
+  Application.Run;
+{$ENDIF}
+
 /////////////////////////////////////////////////////////////////////////
-    {$IFDEF UseConsole}
-    var
-    runner: ITestRunner;
-    results: IRunResults;
-    logger: ITestLogger;
-    nunitLogger: ITestLogger;
+{$IFDEF UseConsole}
+var
+  runner: ITestRunner;
+  results: IRunResults;
+  logger: ITestLogger;
+  nunitLogger: ITestLogger;
+begin
+  try
+    // Create the runner
+    runner := TDUnitX.CreateRunner;
+    runner.UseRTTI := True;
+    // tell the runner how we will log things
+    logger := TDUnitXConsoleLogger.Create(true);
+    nunitLogger := TDUnitXXMLNUnitFileLogger.Create;
+    runner.AddLogger(logger);
+    runner.AddLogger(nunitLogger);
 
-    begin
-      try
-      //Create the runner
-        runner := TDUnitX.CreateRunner;
-        runner.UseRTTI := True;
-      //tell the runner how we will log things
-        logger := TDUnitXConsoleLogger.Create(true);
-        nunitLogger := TDUnitXXMLNUnitFileLogger.Create;
-        runner.AddLogger(logger);
-        runner.AddLogger(nunitLogger);
+    // Run tests
+    results := runner.Execute;
 
-      //Run tests
-        results := runner.Execute;
+    System.Write('Done.. press <Enter> key to quit.');
+    System.Readln;
 
-        System.Write('Done.. press <Enter> key to quit.');
-        System.Readln;
+  except
+    on E: Exception do
+      System.Writeln(E.ClassName, ': ', E.Message);
+  end;
+{$ENDIF}
 
-      except
-        on E: Exception do
-          System.Writeln(E.ClassName, ': ', E.Message);
-      end;
-      {$ENDIF}
+/////////////////////////////////////////////////////////////////////////
+
+{$IFDEF UseTestInSight}
+begin
+  TestInsight.DUnitX.RunRegisteredTests;
+{$ENDIF}
+
 /////////////////////////////////////////////////////////////////////////
 
 {$IFDEF CHECK_MEM_LEAKS}
-TObject.Create;    // Force a mem leak so we know that FastMM is correctly configured to catch/report leaks
+  TObject.Create;    // Force a mem leak so we know that FastMM is correctly configured to catch/report leaks
 {$ENDIF}
 
 end.
