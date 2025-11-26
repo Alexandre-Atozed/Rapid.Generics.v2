@@ -1429,8 +1429,10 @@ type
       Comparison: TComparison<T>): Boolean; overload; static;
     class function BinarySearchDescending<T>(const Values: array of T; const Item: T; out FoundIndex: Integer;
       Index, Count: Integer; const Comparison: TComparison<T>): Boolean; overload; static;
-    class function IndexOf<T>(const Values: array of T; const Item: T): Integer; static;
-    class function Contains<T>(const Values: array of T; const Item: T): Boolean; static;
+    class function IndexOf<T>(const Values: array of T; const Item: T): Integer; overload; static;
+    class function IndexOf<T>(const Values: array of T; const Item: T; const Comparer: IComparer<T>): Integer; overload; static;
+    class function Contains<T>(const Values: array of T; const Item: T): Boolean; overload; static;
+    class function Contains<T>(const Values: array of T; const Item: T; const Comparer: IComparer<T>): Boolean; overload; static;
   end;
 
 { Collection and lightweight optimized enumerator routine }
@@ -15936,6 +15938,23 @@ var
   dummy: Integer;
 begin
   Result := TArray.InternalSearch<T>(@Values[0], 0, Length(Values), Item, dummy);
+end;
+
+class function TArray.IndexOf<T>(const Values: array of T; const Item: T; const Comparer: IComparer<T>): Integer;
+var
+  idx: Integer;
+begin
+  if TArray.InternalSearch<T>(@Values[0], 0, Length(Values), Item, idx, Pointer(Comparer)) then
+    Result := idx
+  else
+    Result := -1;
+end;
+
+class function TArray.Contains<T>(const Values: array of T; const Item: T; const Comparer: IComparer<T>): Boolean;
+var
+  dummy: Integer;
+begin
+  Result := TArray.InternalSearch<T>(@Values[0], 0, Length(Values), Item, dummy, Pointer(Comparer))
 end;
 
 { TCollectionEnumeratorData<T> }
