@@ -16,9 +16,9 @@ The original library could not be used in a real application due to several issu
 ## What is different in v2?
 
 ### ✅ Unit Tests
-* 300+ new unit tests added for `TDictionary<>`, `TObjectDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, `TObjectQueue<>`, `TStack<>` and `TObjectStack<>` classes
+* 350+ new unit tests added for `TArray<>`, `TDictionary<>`, `TObjectDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, `TObjectQueue<>`, `TStack<>` and `TObjectStack<>` classes
 * All tests run memory leak free. Tested with FastMM4 in FullDebugMode
-* All tests can also use standard System.Generics.Collections data structures, just disabling a directive (undefine TEST_RAPIDGENERICS), making it easy to compare unexpected behavior  
+* Most tests can also use standard System.Generics.Collections data structures, just disabling a directive (undefine TEST_RAPIDGENERICS), making it easy to compare unexpected behavior (except SortDescending methods which have no counterpart in System.Generics.Collections)   
 * New tests added to the performance test (benchmark) application  
 
 ### 🔧 General Changes
@@ -35,6 +35,15 @@ The original library could not be used in a real application due to several issu
 * Implemented missing methods: `IndexOf<T>` and `Contains<T>`
 * Fixed `TArray.Copy<T>` for certain sizes of T
 * Fixed `TArray.InternalSearch` when the array is empty
+* New comprehensive unit test suite for TArray<>
+* Sorting:
+  * Ascending (most common) sorting uses **QuickSort** and **InsertionSort** for small partitions (configured by INSERTION_SORT_THRESHOLD, default 16) for most data types
+  * Descending sorting uses a pure **QuickSort** algorithm. Plans to also extend to use InsertionSort
+  * New: Sorting uses Median of three pivot selection
+  * QuickSort corner cases fixed, preventing infinite loops due to improper index bounds during pivot selection
+  * Removed original `RadixSort` and `Insertion` routines (both failed basic unit tests).
+  * Fixed `SortDescending()` methods
+  * Fixed SetCapacity() (zero-initializing allocated memory)
 
 ### 📌 TDictionary<> Improvements
 * Implemented missing method: `TryAdd`
@@ -45,16 +54,11 @@ The original library could not be used in a real application due to several issu
 ### 📌 TList<> Improvements
 * Implemented missing methods: `ExtractAt()` and `IsEmpty()`
 * Fixed `TList<>.InternalDelete` method for managed types, which fixed memory leaks when adding records with managed types to lists
-* Sorting:
-  * Now exclusively uses **QuickSort** for sorting
-  * QuickSort corner cases fixed, preventing infinite loops due to improper index bounds during pivot selection
-  * Removed `RadixSort` and `Insertion` routines (both failed basic unit tests). Plans to revisit this topic in the near future
-  * Fixed `SortDescending()` methods
-  * Fixed SetCapacity() (zero-initializing allocated memory)
+* Sorting: See TArray sorting
 
 ## 📌 Compatibility
 This has been tested with:
-* Delphi 10, 10.1, 10.2, 10.3, 10.4, 11, 12 (x86 and x64)
+* Delphi 10, 10.1, 10.2, 10.3, 10.4, 11, 12 and 13 (x86 and x64)
 * Not tested with any version of Lazarus/FPC yet
 * Other compiler versions will be tested in the near future
 
