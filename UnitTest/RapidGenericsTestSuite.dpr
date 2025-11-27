@@ -48,13 +48,14 @@ uses
   DUnitX.IoC,
   DUnitX.MemoryLeakMonitor.Default,
   DUnitX.DUnitCompatibility,
-  Rapid.Generics in '..\Source\Rapid.Generics.pas',
+  Rapid.Generics in '..\source\Rapid.Generics.pas',
   uListTest in 'uListTest.pas',
   uDictionaryTest in 'uDictionaryTest.pas',
   uStackTest in 'uStackTest.pas',
   uQueueTest in 'uQueueTest.pas',
   uTestTypes in 'uTestTypes.pas',
-  uListRecTest in 'uListRecTest.pas';
+  uListRecTest in 'uListRecTest.pas',
+  uArrayTest in 'uArrayTest.pas';
 
 {$R *.res}
 

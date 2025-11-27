@@ -1302,21 +1302,27 @@ type
     {$ENDIF}
     class procedure CheckArrays(Source, Destination: Pointer; SourceIndex, SourceLength, DestIndex, DestLength, Count:
       NativeInt); static;
-    class function MedianOfThree<T>(var A, B, C: T; Comparer: IComparer<T>): T; static; {$IFDEF HAS_INLINE} inline;
-      {$ENDIF}
+    class function MedianOfThree<T>(const A, B, C: Pointer; Comparer: IComparer<T>): Pointer; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+
     class function SortItemPivot<T>(const I, J: Pointer): Pointer; overload; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class function SortItemPivot<T>(const I, J: Pointer; const Comparer: IComparer<T>): Pointer; overload; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
-    class function SortItemNext<T>(const StackItem, I, J: Pointer): Pointer; static; {$IFDEF HAS_INLINE} inline;
-      {$ENDIF}
+    class function SortItemNext<T>(const StackItem, I, J: Pointer): Pointer; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+
     class function SortItemCount<T>(const I, J: Pointer): NativeInt; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class function SortBinaryMarker<T>(const Binary: Pointer): NativeUInt; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
 
+    class procedure InsertionSortSigneds<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt); static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class procedure SortSigneds<T>(const Values: Pointer; const Count: NativeInt); static;
     class procedure SortDescendingSigneds<T>(const Values: Pointer; const Count: NativeInt); static;
+
+    class procedure InsertionSortUnsigneds<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt); static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class procedure SortUnsigneds<T>(const Values: Pointer; const Count: NativeInt); static;
     class procedure SortDescendingUnsigneds<T>(const Values: Pointer; const Count: NativeInt); static;
+
+    class procedure InsertionSortFloats<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt); static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class procedure SortFloats<T>(const Values: Pointer; const Count: NativeInt); static;
     class procedure SortDescendingFloats<T>(const Values: Pointer; const Count: NativeInt); static;
+
     class procedure SortBinaries<T>(const Values: Pointer; const Count: NativeInt; var PivotBig: T); static;
     class procedure SortDescendingBinaries<T>(const Values: Pointer; const Count: NativeInt; var PivotBig: T); static;
 
@@ -1326,6 +1332,7 @@ type
     class procedure WeakSortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper:
       TSortHelper<T>); static;
     {$ENDIF}
+    class procedure InsertionSortUniversals<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt; var aHelper: TSortHelper<T>); static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class procedure SortUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>);
       static;
     class procedure SortDescendingUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper:
@@ -1352,6 +1359,8 @@ type
       out FoundIndex: Integer): Boolean; overload; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class function InternalSearchDescending<T>(Values: Pointer; Index, Count: Integer; const Item: T;
       out FoundIndex: Integer; Comparer: Pointer): Boolean; overload; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+  public
+    class var INSERTION_SORT_THRESHOLD: Integer;
   public
     class procedure Exchange<T>(const Left, Right: Pointer); static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class procedure Copy<T>(const Destination, Source: Pointer); overload; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
@@ -11358,76 +11367,6 @@ begin
   end;
 end;
 
-// AM TODO: This version uses a median of three in order to obtain the pivot
-// but it's not being used currently
-class function TArray.SortItemPivot<T>(const I, J: Pointer; const Comparer: IComparer<T>): Pointer;
-var
-  First, Middle, Last: Pointer;
-  Index: NativeInt;
-  Count: NativeInt;
-  FirstValue, MiddleValue, LastValue, MedianValue: T;
-begin
-  // number of elements in the segment
-  Count := (NativeInt(J) - NativeInt(I)) div SizeOf(T) + 1;
-
-  if Count <= 1 then
-    Exit(I); // Only one element, return it as pivot
-  if Count = 2 then
-  begin
-    // For two elements, return the smaller one
-    FirstValue := TRAIIHelper<T>.P(I)^;
-    LastValue := TRAIIHelper<T>.P(J)^;
-    if Comparer.Compare(FirstValue, LastValue) <= 0 then
-      Exit(I)
-    else
-      Exit(J);
-  end;
-
-  // Middle element index
-  if (SizeOf(T) and (SizeOf(T) - 1) = 0) and (SizeOf(T) <= 256) then
-  begin
-    Index := NativeInt(J) - NativeInt(I);
-    case SizeOf(T) of
-      0, 1: Index := Index shr 1;
-      2: Index := Index shr 2;
-      4: Index := Index shr 3;
-      8: Index := Index shr 4;
-      16: Index := Index shr 5;
-      32: Index := Index shr 6;
-      64: Index := Index shr 7;
-      128: Index := Index shr 8;
-    else
-      // 256
-      Index := Index shr 9;
-    end;
-  end
-  else
-  begin
-    Index := NativeInt(Round((NativeInt(J) - NativeInt(I)) * (1 / SizeOf(T)))) shr 1;
-  end;
-
-  // Get pointers to first, middle, and last elements
-  First := I;
-  Middle := TRAIIHelper<T>.P(I) + Index;
-  Last := J;
-
-  // Get values for median-of-three
-  FirstValue := TRAIIHelper<T>.P(First)^;
-  MiddleValue := TRAIIHelper<T>.P(Middle)^;
-  LastValue := TRAIIHelper<T>.P(Last)^;
-
-  // Find the median value using MedianOfThree
-  MedianValue := TArray.MedianOfThree<T>(FirstValue, MiddleValue, LastValue, Comparer);
-
-  // Return the pointer to the element that matches the median value
-  if Comparer.Compare(MedianValue, FirstValue) = 0 then
-    Result := First
-  else if Comparer.Compare(MedianValue, MiddleValue) = 0 then
-    Result := Middle
-  else
-    Result := Last;
-end;
-
 class function TArray.SortItemPivot<T>(const I, J: Pointer): Pointer;
 var
   Index: NativeInt;
@@ -11457,22 +11396,45 @@ begin
   Result := TRAIIHelper<T>.P(I) + Index;
 end;
 
-class function TArray.MedianOfThree<T>(var A, B, C: T; Comparer: IComparer<T>): T;
+// Improved Pivot selection using a median of three which tries to avoid very bad pivots
+// The middle element is the same as the one obtained by the overloaded SortItemPivot() method above
+class function TArray.SortItemPivot<T>(const I, J: Pointer; const Comparer: IComparer<T>): Pointer;
+var
+  Count: NativeInt;
 begin
-  if Comparer.Compare(A, B) < 0 then
+  // number of elements in the segment
+  Count := (NativeInt(J) - NativeInt(I)) div SizeOf(T) + 1;
+
+  if Count <= 1 then
+    Exit(I); // Only one element, return it as pivot
+  if Count = 2 then
   begin
-    if Comparer.Compare(B, C) < 0 then
+    // For two elements, return the smaller one
+    if Comparer.Compare(TRAIIHelper<T>.P(I)^, TRAIIHelper<T>.P(J)^) <= 0 then
+      Exit(I)
+    else
+      Exit(J);
+  end;
+
+  Result := TArray.MedianOfThree<T>(I, SortItemPivot<T>(I, J), J, Comparer);
+end;
+
+class function TArray.MedianOfThree<T>(const A, B, C: Pointer; Comparer: IComparer<T>): Pointer;
+begin
+  if Comparer.Compare(TRAIIHelper<T>.P(A)^, TRAIIHelper<T>.P(B)^) < 0 then
+  begin
+    if Comparer.Compare(TRAIIHelper<T>.P(B)^, TRAIIHelper<T>.P(C)^) < 0 then
       Exit(B) // A < B < C
-    else if Comparer.Compare(A, C) < 0 then
+    else if Comparer.Compare(TRAIIHelper<T>.P(A)^, TRAIIHelper<T>.P(C)^) < 0 then
       Exit(C) // A < C < B
     else
       Exit(A);
   end
   else
   begin
-    if Comparer.Compare(A, C) < 0 then
+    if Comparer.Compare(TRAIIHelper<T>.P(A)^, TRAIIHelper<T>.P(C)^) < 0 then
       Exit(A) // B < A < C
-    else if Comparer.Compare(B, C) < 0 then
+    else if Comparer.Compare(TRAIIHelper<T>.P(B)^, TRAIIHelper<T>.P(C)^) < 0 then
       Exit(C) // B < C < A
     else
       Exit(B);
@@ -11634,9 +11596,109 @@ end;
 
 {$WARNINGS OFF} // compiler can't identify variable initialization in case statement
 
+// IntroSort implementation for signed integers
+// InsertionSort for small partitions (16 elements or less)
+{$WARNINGS OFF} // compiler can't identify variable initialization in case statement
+class procedure TArray.InsertionSortSigneds<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt);
+var
+  I, J: NativeInt;
+  Temp: T;
+  PItems: ^T;
+  Val4, Curr4: Integer;
+  {$IFDEF LARGEINT}
+  Val8, Curr8: Int64;
+  {$ELSE .SMALLINT}
+  Val8Low, Curr8Low: Cardinal;
+  Val8High, Curr8High: Integer;
+  {$ENDIF}
+begin
+  PItems := Values;
+  for I := LeftIdx + 1 to RightIdx do
+  begin
+    case SizeOf(T) of
+      1: Val4 := PS1(PItems + I)^;
+      2: Val4 := PS2(PItems + I)^;
+      4: Val4 := PS4(PItems + I)^;
+    else
+      {$IFDEF LARGEINT}
+      Val8 := PS8(PItems + I)^;
+      {$ELSE .SMALLINT}
+      Val8Low := PCardinal(PItems + I)^;
+      Val8High := PPoint(PItems + I).Y;
+      {$ENDIF}
+    end;
+
+    Temp := TRAIIHelper<T>.P(PItems)[I];
+    J := I - 1;
+
+    case SizeOf(T) of
+      1:
+        begin
+          while (J >= LeftIdx) do
+          begin
+            Curr4 := PS1(PItems + J)^;
+            if Curr4 <= Val4 then
+              Break;
+            TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+            Dec(J);
+          end;
+        end;
+      2:
+        begin
+          while (J >= LeftIdx) do
+          begin
+            Curr4 := PS2(PItems + J)^;
+            if Curr4 <= Val4 then
+              Break;
+            TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+            Dec(J);
+          end;
+        end;
+      4:
+        begin
+          while (J >= LeftIdx) do
+          begin
+            Curr4 := PS4(PItems + J)^;
+            if Curr4 <= Val4 then
+              Break;
+            TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+            Dec(J);
+          end;
+        end;
+    else
+      {$IFDEF LARGEINT}
+      while (J >= LeftIdx) do
+      begin
+        Curr8 := PS8(PItems + J)^;
+        if Curr8 <= Val8 then
+          Break;
+        TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+        Dec(J);
+      end;
+      {$ELSE .SMALLINT}
+      while (J >= LeftIdx) do
+      begin
+        Curr8Low := PCardinal(PItems + J)^;
+        Curr8High := PPoint(PItems + J).Y;
+        // Compare: Curr <= Val means no move needed
+        if (Curr8High < Val8High) or
+          ((Curr8High = Val8High) and (Curr8Low <= Val8Low)) then
+          Break;
+        TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+        Dec(J);
+      end;
+      {$ENDIF}
+    end;
+
+    TRAIIHelper<T>.P(PItems)[J + 1] := Temp;
+  end;
+end;
+{$WARNINGS ON}
+
+{$WARNINGS OFF} // compiler can't identify variable initialization in case statement
 class procedure TArray.SortSigneds<T>(const Values: Pointer; const Count: NativeInt);
 label
-  proc_loop, proc_loop_current, swap_loop;
+  proc_loop, proc_loop_current, swap_loop, next_iteration;
 var
   Pivot4: Integer;
   {$IFDEF LARGEINT}
@@ -11648,12 +11710,15 @@ var
   {$ENDIF}
   Temp: T;
 
+  PivotItem: Pointer;
   I, J: ^T;
   StackItem: ^TSortStackItem<T>;
   Stack: TSortStack<T>;
+  PartitionSize, LeftIdx, RightIdx: NativeInt;
 begin
   Stack[0].First := Values;
   Stack[0].Last := TRAIIHelper<T>.P(Values) + Count - 1;
+
   StackItem := Pointer(@Stack[1]);
 
   proc_loop:
@@ -11662,16 +11727,28 @@ begin
   I := StackItem^.First;
   J := StackItem^.Last;
 
+  PartitionSize := SortItemCount<T>(I, J);
+  if (PartitionSize > 0) and (PartitionSize < INSERTION_SORT_THRESHOLD) then
+  begin
+    LeftIdx := SortItemCount<T>(Values, I) - 1;
+    RightIdx := LeftIdx + PartitionSize - 1;
+    TArray.InsertionSortSigneds<T>(Values, LeftIdx, RightIdx);
+    I := StackItem^.Last;
+    J := StackItem^.First;
+    goto next_iteration;
+  end;
+
   // pivot
+  PivotItem := SortItemPivot<T>(I, J, TComparer<T>.Default);
   case SizeOf(T) of
-    1: Pivot4 := PS1(SortItemPivot<T>(I, J))^;
-    2: Pivot4 := PS2(SortItemPivot<T>(I, J))^;
-    4: Pivot4 := PS4(SortItemPivot<T>(I, J))^;
+    1: Pivot4 := PS1(PivotItem)^;
+    2: Pivot4 := PS2(PivotItem)^;
+    4: Pivot4 := PS4(PivotItem)^;
   else
     {$IFDEF LARGEINT}
-    Pivot8 := PS8(SortItemPivot<T>(I, J))^;
+    Pivot8 := PS8(PivotItem)^;
     {$ELSE .SMALLINT}
-    with PPoint(I + ((NativeInt(J) - NativeInt(I)) shr 4))^ do
+    with PPoint(PivotItem)^ do
     begin
       Pivot8Low := X;
       Pivot8High := Y;
@@ -11762,6 +11839,7 @@ begin
     end;
   end;
 
+  next_iteration:
   // next iteration
   StackItem := SortItemNext<T>(StackItem, I, J);
   if (NativeInt(StackItem) >= 0) then
@@ -11791,6 +11869,7 @@ var
   I, J: ^T;
   StackItem: ^TSortStackItem<T>;
   Stack: TSortStack<T>;
+  PivotItem: Pointer;
 begin
   Stack[0].First := Values;
   Stack[0].Last := TRAIIHelper<T>.P(Values) + Count - 1;
@@ -11803,13 +11882,14 @@ begin
   J := StackItem^.Last;
 
   // pivot
+  PivotItem := SortItemPivot<T>(I, J, TComparer<T>.Default);
   case SizeOf(T) of
-    1: Pivot4 := PS1(SortItemPivot<T>(I, J))^;
-    2: Pivot4 := PS2(SortItemPivot<T>(I, J))^;
-    4: Pivot4 := PS4(SortItemPivot<T>(I, J))^;
+    1: Pivot4 := PS1(PivotItem)^;
+    2: Pivot4 := PS2(PivotItem)^;
+    4: Pivot4 := PS4(PivotItem)^;
   else
     {$IFDEF LARGEINT}
-    Pivot8 := PS8(SortItemPivot<T>(I, J))^;
+    Pivot8 := PS8(PivotItem)^;
     {$ELSE .SMALLINT}
     with PPoint(I + ((NativeInt(J) - NativeInt(I)) shr 4))^ do
     begin
@@ -11912,12 +11992,111 @@ begin
 end;
 {$WARNINGS ON}
 
+// IntroSort implementation for unsigned integers
+// InsertionSort for small partitions (16 elements or less)
 {$WARNINGS OFF} // compiler can't identify variable initialization in case statement
+class procedure TArray.InsertionSortUnsigneds<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt);
+var
+  I, J: NativeInt;
+  Temp: T;
+  PItems: ^T;
+  Val4, Curr4: Cardinal;
+  {$IFDEF LARGEINT}
+  Val8, Curr8: UInt64;
+  {$ELSE .SMALLINT}
+  Val8Low, Curr8Low: Cardinal;
+  Val8High, Curr8High: Cardinal;
+  {$ENDIF}
+begin
+  PItems := Values;
+  for I := LeftIdx + 1 to RightIdx do
+  begin
+    case SizeOf(T) of
+      1: Val4 := PU1(PItems + I)^;
+      2: Val4 := PU2(PItems + I)^;
+      4: Val4 := PU4(PItems + I)^;
+    else
+      {$IFDEF LARGEINT}
+      Val8 := PU8(PItems + I)^;
+      {$ELSE .SMALLINT}
+      Val8Low := PCardinal(PItems + I)^;
+      Val8High := PPoint(PItems + I).Y;
+      {$ENDIF}
+    end;
 
+    Temp := TRAIIHelper<T>.P(PItems)[I];
+    J := I - 1;
+
+    case SizeOf(T) of
+      1:
+        begin
+          while (J >= LeftIdx) do
+          begin
+            Curr4 := PU1(PItems + J)^;
+            if Curr4 <= Val4 then
+              Break;
+            TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+            Dec(J);
+          end;
+        end;
+      2:
+        begin
+          while (J >= LeftIdx) do
+          begin
+            Curr4 := PU2(PItems + J)^;
+            if Curr4 <= Val4 then
+              Break;
+            TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+            Dec(J);
+          end;
+        end;
+      4:
+        begin
+          while (J >= LeftIdx) do
+          begin
+            Curr4 := PU4(PItems + J)^;
+            if Curr4 <= Val4 then
+              Break;
+            TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+            Dec(J);
+          end;
+        end;
+    else
+      {$IFDEF LARGEINT}
+      while (J >= LeftIdx) do
+      begin
+        Curr8 := PU8(PItems + J)^;
+        if Curr8 <= Val8 then
+          Break;
+        TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+        Dec(J);
+      end;
+      {$ELSE .SMALLINT}
+      while (J >= LeftIdx) do
+      begin
+        Curr8Low := PCardinal(PItems + J)^;
+        Curr8High := PPoint(PItems + J).Y;
+        // Compare: Curr <= Val means no move needed (unsigned comparison)
+        if (Curr8High < Val8High) or
+          ((Curr8High = Val8High) and (Curr8Low <= Val8Low)) then
+          Break;
+        TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+        Dec(J);
+      end;
+      {$ENDIF}
+    end;
+
+    TRAIIHelper<T>.P(PItems)[J + 1] := Temp;
+  end;
+end;
+{$WARNINGS ON}
+
+{$WARNINGS OFF} // compiler can't identify variable initialization in case statement
 class procedure TArray.SortUnsigneds<T>(const Values: Pointer; const Count: NativeInt);
 label
-  proc_loop, proc_loop_current, swap_loop;
+  proc_loop, proc_loop_current, swap_loop, next_iteration;
 var
+  PivotItem: Pointer;
   Pivot4: Cardinal;
   {$IFDEF LARGEINT}
   Pivot8: UInt64;
@@ -11931,6 +12110,7 @@ var
   I, J: ^T;
   StackItem: ^TSortStackItem<T>;
   Stack: TSortStack<T>;
+  PartitionSize, LeftIdx, RightIdx: NativeInt;
 begin
   Stack[0].First := Values;
   Stack[0].Last := TRAIIHelper<T>.P(Values) + Count - 1;
@@ -11942,16 +12122,29 @@ begin
   I := StackItem^.First;
   J := StackItem^.Last;
 
+  PartitionSize := SortItemCount<T>(I, J);
+  // Run insertion sort in small partitions
+  if (PartitionSize > 0) and (PartitionSize < INSERTION_SORT_THRESHOLD) then
+  begin
+    LeftIdx := SortItemCount<T>(Values, I) - 1;
+    RightIdx := LeftIdx + PartitionSize - 1;
+    TArray.InsertionSortSigneds<T>(Values, LeftIdx, RightIdx);
+    I := StackItem^.Last;
+    J := StackItem^.First;
+    goto next_iteration;
+  end;
+
   // pivot
+  PivotItem := SortItemPivot<T>(I, J, TComparer<T>.Default);
   case SizeOf(T) of
-    1: Pivot4 := PU1(SortItemPivot<T>(I, J))^;
-    2: Pivot4 := PU2(SortItemPivot<T>(I, J))^;
-    4: Pivot4 := PU4(SortItemPivot<T>(I, J))^;
+    1: Pivot4 := PU1(PivotItem)^;
+    2: Pivot4 := PU2(PivotItem)^;
+    4: Pivot4 := PU4(PivotItem)^;
   else
     {$IFDEF LARGEINT}
-    Pivot8 := PU8(SortItemPivot<T>(I, J))^;
+    Pivot8 := PU8(PivotItem)^;
     {$ELSE .SMALLINT}
-    with PPoint(I + ((NativeInt(J) - NativeInt(I)) shr 4))^ do
+    with PPoint(PivotItem)^ do
     begin
       Pivot8Low := X;
       Pivot8High := Y;
@@ -12043,6 +12236,7 @@ begin
   end;
 
   // next iteration
+  next_iteration:
   StackItem := SortItemNext<T>(StackItem, I, J);
   if (NativeInt(StackItem) >= 0) then
     goto proc_loop_current;
@@ -12071,6 +12265,7 @@ var
   I, J: ^T;
   StackItem: ^TSortStackItem<T>;
   Stack: TSortStack<T>;
+  PivotItem: Pointer;
 begin
   Stack[0].First := Values;
   Stack[0].Last := TRAIIHelper<T>.P(Values) + Count - 1;
@@ -12083,13 +12278,14 @@ begin
   J := StackItem^.Last;
 
   // pivot
+  PivotItem := SortItemPivot<T>(I, J, TComparer<T>.Default);
   case SizeOf(T) of
-    1: Pivot4 := PU1(SortItemPivot<T>(I, J))^;
-    2: Pivot4 := PU2(SortItemPivot<T>(I, J))^;
-    4: Pivot4 := PU4(SortItemPivot<T>(I, J))^;
+    1: Pivot4 := PU1(PivotItem)^;
+    2: Pivot4 := PU2(PivotItem)^;
+    4: Pivot4 := PU4(PivotItem)^;
   else
     {$IFDEF LARGEINT}
-    Pivot8 := PU8(SortItemPivot<T>(I, J))^;
+    Pivot8 := PU8(PivotItem)^;
     {$ELSE .SMALLINT}
     with PPoint(I + ((NativeInt(J) - NativeInt(I)) shr 4))^ do
     begin
@@ -12193,10 +12389,75 @@ end;
 {$WARNINGS ON}
 
 {$WARNINGS OFF} // compiler can't identify variable initialization in case statement
+class procedure TArray.InsertionSortFloats<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt);
+var
+  I, J: NativeInt;
+  Temp: T;
+  PItems: ^T;
+  Val4: Single;
+  Val8: Double;
+  ValE: Extended;
+  Curr4: Single;
+  Curr8: Double;
+  CurrE: Extended;
+begin
+  PItems := Values;
+  for I := LeftIdx + 1 to RightIdx do
+  begin
+    case SizeOf(T) of
+      4: Val4 := PF4(PItems + I)^;
+      8: Val8 := PF8(PItems + I)^;
+    else
+      ValE := PFE(PItems + I)^;
+    end;
+
+    Temp := TRAIIHelper<T>.P(PItems)[I];
+    J := I - 1;
+
+    case SizeOf(T) of
+      4:
+        begin
+          while (J >= LeftIdx) do
+          begin
+            Curr4 := PF4(PItems + J)^;
+            if Curr4 <= Val4 then
+              Break;
+            TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+            Dec(J);
+          end;
+        end;
+      8:
+        begin
+          while (J >= LeftIdx) do
+          begin
+            Curr8 := PF8(PItems + J)^;
+            if Curr8 <= Val8 then
+              Break;
+            TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+            Dec(J);
+          end;
+        end;
+    else
+      while (J >= LeftIdx) do
+      begin
+        CurrE := PFE(PItems + J)^;
+        if CurrE <= ValE then
+          Break;
+        TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+        Dec(J);
+      end;
+    end;
+
+    TRAIIHelper<T>.P(PItems)[J + 1] := Temp;
+  end;
+end;
+{$WARNINGS ON}
+
+{$WARNINGS OFF} // compiler can't identify variable initialization in case statement
 
 class procedure TArray.SortFloats<T>(const Values: Pointer; const Count: NativeInt);
 label
-  proc_loop, proc_loop_current, swap_loop;
+  proc_loop, proc_loop_current, swap_loop, next_iteration;
 var
   Pivot4: Single;
   Pivot8: Double;
@@ -12206,6 +12467,8 @@ var
   I, J: ^T;
   StackItem: ^TSortStackItem<T>;
   Stack: TSortStack<T>;
+  PivotItem: Pointer;
+  PartitionSize, LeftIdx, RightIdx: NativeInt;
 begin
   Stack[0].First := Values;
   Stack[0].Last := TRAIIHelper<T>.P(Values) + Count - 1;
@@ -12217,12 +12480,25 @@ begin
   I := StackItem^.First;
   J := StackItem^.Last;
 
+  PartitionSize := SortItemCount<T>(I, J);
+  // Run insertion sort in small partitions
+  if (PartitionSize > 0) and (PartitionSize < INSERTION_SORT_THRESHOLD) then
+  begin
+    LeftIdx := SortItemCount<T>(Values, I) - 1;
+    RightIdx := LeftIdx + PartitionSize - 1;
+    TArray.InsertionSortFloats<T>(Values, LeftIdx, RightIdx);
+    I := StackItem^.Last;
+    J := StackItem^.First;
+    goto next_iteration;
+  end;
+
   // pivot
+  PivotItem := SortItemPivot<T>(I, J, TComparer<T>.Default);
   case SizeOf(T) of
-    4: Pivot4 := PF4(SortItemPivot<T>(I, J))^;
-    8: Pivot8 := PF8(SortItemPivot<T>(I, J))^;
+    4: Pivot4 := PF4(PivotItem)^;
+    8: Pivot8 := PF8(PivotItem)^;
   else
-    PivotE := PFE(SortItemPivot<T>(I, J))^;
+    PivotE := PFE(PivotItem)^;
   end;
 
   // quick sort
@@ -12300,6 +12576,7 @@ begin
   end;
 
   // next iteration
+  next_iteration:
   StackItem := SortItemNext<T>(StackItem, I, J);
   if (NativeInt(StackItem) >= 0) then
     goto proc_loop_current;
@@ -12323,6 +12600,7 @@ var
   I, J: ^T;
   StackItem: ^TSortStackItem<T>;
   Stack: TSortStack<T>;
+  PivotItem: Pointer;
 begin
   Stack[0].First := Values;
   Stack[0].Last := TRAIIHelper<T>.P(Values) + Count - 1;
@@ -12335,11 +12613,12 @@ begin
   J := StackItem^.Last;
 
   // pivot
+  PivotItem := SortItemPivot<T>(I, J, TComparer<T>.Default);
   case SizeOf(T) of
-    4: Pivot4 := PF4(SortItemPivot<T>(I, J))^;
-    8: Pivot8 := PF8(SortItemPivot<T>(I, J))^;
+    4: Pivot4 := PF4(PivotItem)^;
+    8: Pivot8 := PF8(PivotItem)^;
   else
-    PivotE := PFE(SortItemPivot<T>(I, J))^;
+    PivotE := PFE(PivotItem)^;
   end;
 
   // quick sort
@@ -13198,7 +13477,7 @@ end;
 class procedure TArray.WeakSortUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper:
   TSortHelper<T>);
 label
-  proc_loop, proc_loop_current, swap_loop;
+  proc_loop, proc_loop_current, swap_loop, next_iteration;
 var
   I, J: ^T;
   StackItem: ^TSortStackItem<T>;
@@ -13255,6 +13534,7 @@ begin
   end;
 
   // next iteration
+  next_iteration:
   StackItem := SortItemNext<T>(StackItem, I, J);
   if (NativeInt(StackItem) >= 0) then
     goto proc_loop_current;
@@ -13264,9 +13544,35 @@ begin
 end;
 {$ENDIF}
 
+{$WARNINGS OFF} // compiler can't identify variable initialization in case statement
+class procedure TArray.InsertionSortUniversals<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt; var aHelper: TSortHelper<T>);
+var
+  I, J: NativeInt;
+  Temp: T;
+  PItems: ^T;
+begin
+  PItems := Values;
+  for I := LeftIdx + 1 to RightIdx do
+  begin
+    Temp := TRAIIHelper<T>.P(PItems)[I];
+    J := I - 1;
+
+    while (J >= LeftIdx) do
+    begin
+      if (aHelper.Compare(aHelper.Inst, TRAIIHelper<T>.P(PItems)[J], Temp) <= 0) then
+        Break;
+      TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+      Dec(J);
+    end;
+
+    TRAIIHelper<T>.P(PItems)[J + 1] := Temp;
+  end;
+end;
+{$WARNINGS ON}
+
 class procedure TArray.SortUniversals<T>(const Values: Pointer; const Count: NativeInt; var aHelper: TSortHelper<T>);
 label
-  proc_loop, proc_loop_current, swap_loop;
+  proc_loop, proc_loop_current, swap_loop, next_iteration;
 var
   Index: NativeInt;
   Temp1: Byte;
@@ -13277,6 +13583,7 @@ var
   I, J: ^T;
   StackItem: ^TSortStackItem<T>;
   Stack: TSortStack<T>;
+  PartitionSize, LeftIdx, RightIdx: NativeInt;
 begin
   Stack[0].First := Values;
   Stack[0].Last := TRAIIHelper<T>.P(Values) + Count - 1;
@@ -13288,8 +13595,20 @@ begin
   I := StackItem^.First;
   J := StackItem^.Last;
 
+  PartitionSize := SortItemCount<T>(I, J);
+  // Run insertion sort in small partitions
+  if (PartitionSize > 0) and (PartitionSize < INSERTION_SORT_THRESHOLD) then
+  begin
+    LeftIdx := SortItemCount<T>(Values, I) - 1;
+    RightIdx := LeftIdx + PartitionSize - 1;
+    TArray.InsertionSortUniversals<T>(Values, LeftIdx, RightIdx, aHelper);
+    I := StackItem^.Last;
+    J := StackItem^.First;
+    goto next_iteration;
+  end;
+
   // pivot
-  TArray.Copy<T>(@aHelper.Pivot, SortItemPivot<T>(I, J));
+  TArray.Copy<T>(@aHelper.Pivot, SortItemPivot<T>(I, J, TComparer<T>.Default));
 
   // quick sort
   Dec(J);
@@ -13505,6 +13824,7 @@ begin
   end;
 
   // next iteration
+  next_iteration:
   StackItem := SortItemNext<T>(StackItem, I, J);
   if (NativeInt(StackItem) >= 0) then
     goto proc_loop_current;
@@ -13609,7 +13929,7 @@ begin
   J := StackItem^.Last;
 
   // pivot
-  TArray.Copy<T>(@aHelper.Pivot, SortItemPivot<T>(I, J));
+  TArray.Copy<T>(@aHelper.Pivot, SortItemPivot<T>(I, J, TComparer<T>.Default));
 
   // quick sort
   Dec(J);
@@ -24189,6 +24509,7 @@ begin
 end;
 
 initialization
+  TArray.INSERTION_SORT_THRESHOLD := 16;
   {$IF CompilerVersion < 31}
   TOSTime.Initialize;
   TCustomObject.CreateIntfTables;

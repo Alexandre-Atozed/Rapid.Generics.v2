@@ -16,10 +16,9 @@ type
 
   {$M+}
   TTest<T> = class
-  public
-    type
-      TItems = array[0..ITEMS_COUNT - 1] of T;
-      TRandomFunc = reference to function: T;
+  public type
+    TItems = array[0..ITEMS_COUNT - 1] of T;
+  TRandomFunc = reference to function: T;
   public
     Items: TItems;
     SourceItems: TItems;
@@ -27,7 +26,8 @@ type
 
     constructor Create(const RandomFunc: TRandomFunc; const AComparison: Generics.Defaults.TComparison<T>);
     destructor Destroy; override;
-    procedure Run(const SystemTest, RapidTest: TProc; const IterationsCount: Integer; const MakeCopy: Boolean = True);
+    procedure Run(const SystemTest, RapidTest: TProc; const IterationsCount: Integer;
+      const MakeCopy: Boolean = True);
 
     procedure RunEach;
   published
@@ -40,7 +40,7 @@ type
     procedure SystemSearch;
     procedure RapidSearch;
   end;
-{$M-}
+  {$M-}
 
 procedure Run;
 
@@ -49,17 +49,20 @@ implementation
 procedure Run;
 begin
   with TTest<string>.Create(
-      function: string
-      var
-        Len, i: Integer;
-      begin
-        Len := 5 + Random(8);
-        SetLength(Result, Len);
+    function: string
+    var
+      Len, i: Integer;
+    begin
+      Len := 5 + Random(8);
+      SetLength(Result, Len);
 
-        for i := 1 to Len do
-          Result[i] := Char(Ord('A') + Random(Ord('Z') - Ord('A') + 1));
-      end,
-      function(const Left, Right: string): Integer begin Result := CompareStr(Left, Right); end) do
+      for i := 1 to Len do
+        Result[i] := Char(Ord('A') + Random(Ord('Z') - Ord('A') + 1));
+    end,
+    function(const Left, Right: string): Integer
+    begin
+      Result := CompareStr(Left, Right);
+    end) do
     try
       RunEach;
     finally
@@ -67,11 +70,29 @@ begin
     end;
 
   with TTest<Single>.Create(
-      function: Single begin Result := Random * ITEMS_COUNT; end,
-      function(const Left, Right: Single): Integer
-      begin
-        Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
-      end) do
+    function: Single
+    begin
+      Result := Random * ITEMS_COUNT;
+    end,
+    function(const Left, Right: Single): Integer
+    begin
+      Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
+    end) do
+    try
+      RunEach;
+    finally
+      Free;
+    end;
+
+  with TTest<Double>.Create(
+    function: Double
+    begin
+      Result := Random * ITEMS_COUNT;
+    end,
+    function(const Left, Right: Double): Integer
+    begin
+      Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
+    end) do
     try
       RunEach;
     finally
@@ -79,11 +100,59 @@ begin
     end;
 
   with TTest<Integer>.Create(
-      function: Integer begin Result := Random(ITEMS_COUNT); end,
-      function(const Left, Right: Integer): Integer
-      begin
-        Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
-      end) do
+    function: Integer
+    begin
+      Result := Random(ITEMS_COUNT);
+    end,
+    function(const Left, Right: Integer): Integer
+    begin
+      Result := ShortInt(Byte(Left >= Right) - Byte(Left <= Right));
+    end) do
+    try
+      RunEach;
+    finally
+      Free;
+    end;
+
+  with TTest<Cardinal>.Create(
+    function: Cardinal
+    begin
+      Result := Random(ITEMS_COUNT);
+    end,
+    function(const Left, Right: Cardinal): Integer
+    begin
+      Result := ShortInt(Byte(Left >= Right) - Byte(Left <= Right));
+    end) do
+    try
+      RunEach;
+    finally
+      Free;
+    end;
+
+  with TTest<Int64>.Create(
+    function: Int64
+    begin
+      Result := Random(ITEMS_COUNT);
+    end,
+    function(const Left, Right: Int64): Integer
+    begin
+      Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
+    end) do
+    try
+      RunEach;
+    finally
+      Free;
+    end;
+
+  with TTest<UInt64>.Create(
+    function: UInt64
+    begin
+      Result := Random(ITEMS_COUNT);
+    end,
+    function(const Left, Right: UInt64): Integer
+    begin
+      Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
+    end) do
     try
       RunEach;
     finally
@@ -109,7 +178,8 @@ begin
   inherited;
 end;
 
-procedure TTest<T>.Run(const SystemTest, RapidTest: TProc; const IterationsCount: Integer; const MakeCopy: Boolean);
+procedure TTest<T>.Run(const SystemTest, RapidTest: TProc; const IterationsCount: Integer;
+  const MakeCopy: Boolean);
 var
   i: Integer;
   N: Boolean;
@@ -144,15 +214,16 @@ end;
 
 procedure TTest<T>.SystemSortComparison;
 begin
-  Generics.Collections.TArray.Sort<T>(Items, Generics.Defaults.TComparer<T>.Construct(Comparison));
+  Generics.Collections.TArray.Sort<T>(Items,
+    Generics.Defaults.TComparer<T>.Construct(Comparison)
+    );
 end;
 
 procedure TTest<T>.RapidSortComparison;
 begin
-  Rapid.Generics.TArray.Sort<T>(
-      Items,
-      Rapid.Generics.TComparer<T>.Construct(Rapid.Generics.TComparison<T>(Comparison))
-  );
+  Rapid.Generics.TArray.Sort<T>(Items,
+    Rapid.Generics.TComparer<T>.Construct(Rapid.Generics.TComparison<T>(Comparison))
+    );
 end;
 
 procedure TTest<T>.SystemSort;
@@ -173,11 +244,9 @@ var
 begin
   for i := Low(Items) to High(Items) do
   begin
-    Found :=
-        Generics
-            .Collections
-            .TArray
-            .BinarySearch<T>(Items, Items[i], Index, Generics.Defaults.TComparer<T>.Construct(Comparison));
+    Found := Generics.Collections.TArray.BinarySearch<T>(Items, Items[i],
+      Index, Generics.Defaults.TComparer<T>.Construct(Comparison)
+      );
 
     if (not Found) then
       raise Exception.Create('');
@@ -192,13 +261,9 @@ var
 begin
   for i := Low(Items) to High(Items) do
   begin
-    Found :=
-        Rapid.Generics.TArray.BinarySearch<T>(
-            Items,
-            Items[i],
-            Index,
-            Rapid.Generics.TComparer<T>.Construct(Rapid.Generics.TComparison<T>(Comparison))
-        );
+    Found := Rapid.Generics.TArray.BinarySearch<T>(Items, Items[i],
+      Index, Rapid.Generics.TComparer<T>.Construct(Rapid.Generics.TComparison<T>(Comparison))
+      );
 
     if (not Found) then
       raise Exception.Create('');
@@ -247,3 +312,4 @@ begin
 end;
 
 end.
+

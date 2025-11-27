@@ -19,59 +19,57 @@ type
     sw: TStopwatch;
     procedure StartTest(const aClassName, aTestName: string; aStart: Boolean);
     procedure EndTest;
-  public
-    type
-      TItems = array[0..ITEMS_COUNT - 1] of T;
-      TRandomFunc = reference to function: T;
+  public type
+    TItems = array[0..ITEMS_COUNT - 1] of T;
+  TRandomFunc = reference to function: T;
 
-      TTest = class
-        constructor Create(const Items: TItems; const Capacity: Integer); virtual; abstract;
-        function ExecuteItems(const Items: TItems): Integer; virtual; abstract;
-        function ExecuteTryGetValue(const Items: TItems): Integer; virtual; abstract;
-        procedure ExecuteRemove(const Items: TItems); virtual; abstract;
-      end;
-      TTestClass = class of TTest;
+    TTest = class
+      constructor Create(const Items: TItems; const Capacity: Integer); virtual; abstract;
+      function ExecuteItems(const Items: TItems): Integer; virtual; abstract;
+      function ExecuteTryGetValue(const Items: TItems): Integer; virtual; abstract;
+      procedure ExecuteRemove(const Items: TItems); virtual; abstract;
+    end;
+    TTestClass = class of TTest;
   public
     Items: TItems;
     constructor Create(const RandomFunc: TRandomFunc);
 
     procedure Run(const TestClass: TTestClass);
     procedure RunEach;
-  public
-    type
-      SystemSystem = class(TTest)
-        Dictionary: Generics.Collections.TDictionary<T, Integer>;
+  public type
+    SystemSystem = class(TTest)
+      Dictionary: Generics.Collections.TDictionary<T, Integer>;
 
-        constructor Create(const Items: TItems; const Capacity: Integer); override;
-        destructor Destroy; override;
-        function ExecuteItems(const Items: TItems): Integer; override;
-        function ExecuteTryGetValue(const Items: TItems): Integer; override;
-        procedure ExecuteRemove(const Items: TItems); override;
-      end;
+      constructor Create(const Items: TItems; const Capacity: Integer); override;
+      destructor Destroy; override;
+      function ExecuteItems(const Items: TItems): Integer; override;
+      function ExecuteTryGetValue(const Items: TItems): Integer; override;
+      procedure ExecuteRemove(const Items: TItems); override;
+    end;
 
-      SystemRapid = class(SystemSystem)
-        constructor Create(const Items: TItems; const Capacity: Integer); override;
-      end;
+    SystemRapid = class(SystemSystem)
+      constructor Create(const Items: TItems; const Capacity: Integer); override;
+    end;
 
-      RapidRapid = class(TTest)
-        Dictionary: Rapid.Generics.TDictionary<T, Integer>;
+    RapidRapid = class(TTest)
+      Dictionary: Rapid.Generics.TDictionary<T, Integer>;
 
-        constructor Create(const Items: TItems; const Capacity: Integer); override;
-        destructor Destroy; override;
-        function ExecuteItems(const Items: TItems): Integer; override;
-        function ExecuteTryGetValue(const Items: TItems): Integer; override;
-        procedure ExecuteRemove(const Items: TItems); override;
-      end;
+      constructor Create(const Items: TItems; const Capacity: Integer); override;
+      destructor Destroy; override;
+      function ExecuteItems(const Items: TItems): Integer; override;
+      function ExecuteTryGetValue(const Items: TItems): Integer; override;
+      procedure ExecuteRemove(const Items: TItems); override;
+    end;
 
-      RapidDictionary = class(TTest)
-        Dictionary: TRapidDictionary<T, Integer>;
+    RapidDictionary = class(TTest)
+      Dictionary: TRapidDictionary<T, Integer>;
 
-        constructor Create(const Items: TItems; const Capacity: Integer); override;
-        destructor Destroy; override;
-        function ExecuteItems(const Items: TItems): Integer; override;
-        function ExecuteTryGetValue(const Items: TItems): Integer; override;
-        procedure ExecuteRemove(const Items: TItems); override;
-      end;
+      constructor Create(const Items: TItems; const Capacity: Integer); override;
+      destructor Destroy; override;
+      function ExecuteItems(const Items: TItems): Integer; override;
+      function ExecuteTryGetValue(const Items: TItems): Integer; override;
+      procedure ExecuteRemove(const Items: TItems); override;
+    end;
   end;
 
 procedure Run;
@@ -81,37 +79,104 @@ implementation
 procedure Run;
 begin
   with TRunner<string>.Create(
-      function: string
-      var
-        Len, i: Integer;
-      begin
-        Len := 5 + Random(8);
-        SetLength(Result, Len);
+    function: string
+    var
+      Len, i: Integer;
+    begin
+      Len := 5 + Random(8);
+      SetLength(Result, Len);
 
-        for i := 1 to Len do
-          Result[i] := Char(Ord('A') + Random(Ord('Z') - Ord('A') + 1));
-      end) do
+      for i := 1 to Len do
+        Result[i] := Char(Ord('A') + Random(Ord('Z') - Ord('A') + 1));
+    end) do
     try
       RunEach;
     finally
       Free;
     end;
 
-  with TRunner<Single>.Create(function: Single begin Result := Random * ITEMS_COUNT; end) do
+  with TRunner<Single>.Create(
+    function: Single
+    begin
+      Result := Random * ITEMS_COUNT;
+    end) do
     try
       RunEach;
     finally
       Free;
     end;
 
-  with TRunner<Integer>.Create(function: Integer begin Result := Random(ITEMS_COUNT); end) do
+  with TRunner<Integer>.Create(
+    function: Integer
+    begin
+      Result := Random(ITEMS_COUNT);
+    end) do
     try
       RunEach;
     finally
       Free;
     end;
 
-  with TRunner<Double>.Create(function: Double begin Result := Random(ITEMS_COUNT); end) do
+  with TRunner<Cardinal>.Create(
+    function: Cardinal
+    begin
+      Result := Random(ITEMS_COUNT);
+    end) do
+    try
+      RunEach;
+    finally
+      Free;
+    end;
+
+  with TRunner<Double>.Create(
+    function: Double
+    begin
+      Result := Random(ITEMS_COUNT);
+    end) do
+    try
+      RunEach;
+    finally
+      Free;
+    end;
+
+  with TRunner<Extended>.Create(
+    function: Extended
+    begin
+      Result := Random(ITEMS_COUNT);
+    end) do
+    try
+      RunEach;
+    finally
+      Free;
+    end;
+
+  with TRunner<Single>.Create(
+    function: Single
+    begin
+      Result := Random(ITEMS_COUNT);
+    end) do
+    try
+      RunEach;
+    finally
+      Free;
+    end;
+
+  with TRunner<Int64>.Create(
+    function: Int64
+    begin
+      Result := Random(ITEMS_COUNT);
+    end) do
+    try
+      RunEach;
+    finally
+      Free;
+    end;
+
+  with TRunner<UInt64>.Create(
+    function: UInt64
+    begin
+      Result := Random(ITEMS_COUNT);
+    end) do
     try
       RunEach;
     finally
@@ -146,7 +211,8 @@ end;
 
 function TRunner<T>.SystemSystem.ExecuteTryGetValue(const Items: TItems): Integer;
 var
-  Value, i: Integer;
+  Value,
+  i: Integer;
 begin
   for i := Low(TItems) to High(TItems) do
   begin
@@ -206,7 +272,8 @@ end;
 
 function TRunner<T>.RapidRapid.ExecuteTryGetValue(const Items: TItems): Integer;
 var
-  Value, i: Integer;
+  Value,
+  i: Integer;
 begin
   for i := Low(TItems) to High(TItems) do
   begin
@@ -252,7 +319,8 @@ end;
 
 function TRunner<T>.RapidDictionary.ExecuteTryGetValue(const Items: TItems): Integer;
 var
-  Value, i: Integer;
+  Value,
+  i: Integer;
 begin
   for i := Low(TItems) to High(TItems) do
   begin
@@ -353,3 +421,4 @@ begin
 end;
 
 end.
+

@@ -109,6 +109,8 @@ type
     procedure TestFloatAddRange;
     [Test]
     procedure TestFloatDeleteRange;
+    [Test]
+    procedure TestShrink;
   end;
   {$ENDIF TEST_FLOATLIST}
 
@@ -188,17 +190,6 @@ type
   {$ENDIF TEST_POINTERLIST}
 
   {$IFDEF TEST_RECORDLIST}
-
-  // Test for lists of records with strings (managed types)
-  TTestRecordString = record
-    x: Integer;
-    y: string;
-  end;
-
-  TTestRecordStringComparer = class(TInterfacedObject, IComparer<TTestRecordString>)
-  public
-    function Compare(const Left, Right: TTestRecordString): Integer;
-  end;
 
   [TestFixture]
   TListTestRecordString = class
@@ -904,6 +895,16 @@ begin
   Assert.IsTrue(FList.Contains(8) and FList.Contains(9) and FList.Contains(10));
   Assert.IsFalse(FList.Contains(4) or FList.Contains(5) or FList.Contains(6) or FList.Contains(7));
 end;
+
+procedure TListTestDouble.TestShrink;
+begin
+  FList.Add(10.1);
+  FList.Add(20.2);
+  Assert.AreEqual(2, Integer(FList.Count));
+  FList.Count := 1;
+  Assert.AreEqual(1, Integer(FList.Count));
+end;
+
 {$ENDIF TEST_FLOATLIST}
 {$ENDREGION 'Test<Double> Tests'}
 
@@ -1057,8 +1058,6 @@ begin
 end;
 
 procedure TListTestString.TestSortDescending;
-var
-  Index: Integer;
 begin
   FList.Clear;
 
@@ -1435,15 +1434,6 @@ end;
 
 {$IFDEF TEST_RECORDLIST}
 
-{ TTestRecordComparer }
-
-function TTestRecordStringComparer.Compare(const Left, Right: TTestRecordString): Integer;
-begin
-  Result := Left.x - Right.x;
-  if Result = 0 then
-    Result := CompareText(Left.y, Right.y);
-end;
-
 { TListTestRecord }
 
 procedure TListTestRecordString.SetUp;
@@ -1712,7 +1702,6 @@ end;
 
 procedure TListTestRecordString.TestSortDescending;
 var
-  Index: Integer;
   Rec1, Rec2, Rec3, Rec4, Rec5, SearchRec: TTestRecordString;
 begin
   Rec1.x := 1;
@@ -2062,7 +2051,6 @@ end;
 
 procedure TListTestRecordStaticArray.TestSortDescending;
 var
-  Index: Integer;
   Rec1, Rec2, Rec3, Rec4, Rec5, SearchRec: TTestRecordStaticArray;
 begin
   Rec1.x := 1;
@@ -2392,8 +2380,7 @@ end;
 
 procedure TListTestRecordDynamicArray.TestSortDescending;
 var
-  Index: Integer;
-  Rec1, Rec2, Rec3, Rec4, Rec5, SearchRec: TTestRecordDynamicArray;
+  Rec1, Rec2, Rec3, Rec4, Rec5: TTestRecordDynamicArray;
 begin
   Rec1.x := 1;
   FillDynamicArray(Rec1.y);
