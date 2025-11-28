@@ -38,6 +38,7 @@ The original library could not be used in a real application due to several issu
 * New comprehensive unit test suite for TArray<>
 * Sorting:
   * Ascending (most common) sorting uses **QuickSort** and **InsertionSort** for small partitions (configured by INSERTION_SORT_THRESHOLD, default 16) for most data types
+  * Use of InsertionSort for small partitions increase the performance around 30-40% for large data sets, and up to 500% for small data sets, compared to pure QuickSort
   * Descending sorting uses a pure **QuickSort** algorithm. Plans to also extend to use InsertionSort
   * New: Sorting uses Median of three pivot selection
   * QuickSort corner cases fixed, preventing infinite loops due to improper index bounds during pivot selection
