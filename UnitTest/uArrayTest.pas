@@ -42,13 +42,17 @@ type
     [Test]
     procedure TestSortIntegerBig;
     [Test]
+    procedure TestReverseInteger;
+    [Test]
+    procedure TestReverseIntegerBig;
+    [Test]
     procedure TestSortDescendingInteger;
     [Test]
     procedure TestSortDescendingIntegerBig;
     [Test]
-    procedure TestBinarySearchInteger;
-    [Test]
     procedure TestBinarySearchDescendingInteger;
+    [Test]
+    procedure TestBinarySearchInteger;
     [Test]
     procedure TestIndexOfInteger;
     [Test]
@@ -64,9 +68,9 @@ type
     [Test]
     procedure TestSortDescendingDoubleBig;
     [Test]
-    procedure TestBinarySearchDouble;
-    [Test]
     procedure TestBinarySearchDescendingDouble;
+    [Test]
+    procedure TestBinarySearchDouble;
     [Test]
     procedure TestIndexOfDouble;
     [Test]
@@ -125,6 +129,32 @@ type
     procedure TestSortUInt64Big;
     [Test]
     procedure TestSortDescendingUInt64Big;
+    [Test]
+    procedure TestReverseCardinalBig;
+    [Test]
+    procedure TestReverseDoubleBig;
+    [Test]
+    procedure TestReverseExtendedBig;
+    [Test]
+    procedure TestReverseInt64Big;
+    [Test]
+    procedure TestReverseSingleBig;
+    [Test]
+    procedure TestReverseSmallIntBig;
+    [Test]
+    procedure TestReverseUInt64Big;
+    [Test]
+    procedure TestSortDescendingWideString;
+    [Test]
+    procedure TestSortStringBig;
+    [Test]
+    procedure TestSortWideString;
+    [Test]
+    procedure TestSortWideStringBig;
+    [Test]
+    procedure TestSortDescendingStringBig;
+    [Test]
+    procedure TestSortDescendingWideStringBig;
   end;
 
 implementation
@@ -199,6 +229,7 @@ begin
   Assert.IsTrue(TArrayBuilder.IsArraySorted<Integer>(Arr, soAscending));
 end;
 
+{$IFDEF TEST_RAPIDGENERICS}
 procedure TArrayTest.TestSortIntegerOrderedDescending;
 var
   Arr: TArray<Integer>;
@@ -214,6 +245,7 @@ begin
   Assert.AreEqual(32, Integer(Length(Arr)));
   Assert.IsTrue(TArrayBuilder.IsArraySorted<Integer>(Arr, soDescending));
 end;
+{$ENDIF}
 
 procedure TArrayTest.TestSortIntegerOrderedReverseDescending;
 var
@@ -239,6 +271,21 @@ begin
   TArray.Sort<Integer>(Arr);
   Assert.AreEqual(8, Integer(Length(Arr)));
   Assert.IsTrue(TArrayBuilder.IsArraySorted<Integer>(Arr, soAscending));
+
+  TArray.Reverse<Integer>(Arr);
+  Assert.AreEqual(8, Integer(Length(Arr)));
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<Integer>(Arr, soDescending));
+end;
+
+procedure TArrayTest.TestReverseInteger;
+var
+  Arr: TArray<Integer>;
+begin
+  Arr := [3, 1, 4, 1, 5, 9, 2, 6];
+  TArray.Sort<Integer>(Arr);
+  TArray.Reverse<Integer>(Arr);  // reverse the sorted array
+  Assert.AreEqual(8, Integer(Length(Arr)));
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<Integer>(Arr, soDescending));
 end;
 
 procedure TArrayTest.TestSortIntegerBig;
@@ -249,6 +296,17 @@ begin
   TArray.Sort<Integer>(Arr);
   Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
   Assert.IsTrue(TArrayBuilder.IsArraySorted<Integer>(Arr, soAscending));
+end;
+
+procedure TArrayTest.TestReverseIntegerBig;
+var
+  Arr: TArray<Integer>;
+begin
+  Arr := TArrayBuilder.RandomInteger(BIG_TEST_LENGTH);
+  TArray.Sort<Integer>(Arr);
+  TArray.Reverse<Integer>(Arr);  // reverse the sorted array
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<Integer>(Arr, soDescending));
 end;
 
 procedure TArrayTest.TestSortDescendingInteger;
@@ -434,6 +492,16 @@ begin
   Assert.AreEqual('d', Arr[3]);
 end;
 
+procedure TArrayTest.TestSortStringBig;
+var
+  Arr: TArray<string>;
+begin
+  Arr := TArrayBuilder.RandomString(BIG_TEST_LENGTH);
+  TArray.Sort<string>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<string>(Arr, soAscending));
+end;
+
 procedure TArrayTest.TestSortDescendingString;
 var
   Arr: TArray<string>;
@@ -445,6 +513,62 @@ begin
   Assert.AreEqual('c', Arr[1]);
   Assert.AreEqual('b', Arr[2]);
   Assert.AreEqual('a', Arr[3]);
+end;
+
+procedure TArrayTest.TestSortDescendingStringBig;
+var
+  Arr: TArray<string>;
+begin
+  Arr := TArrayBuilder.RandomString(BIG_TEST_LENGTH);
+  TArray.SortDescending<string>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<string>(Arr, soDescending));
+end;
+
+procedure TArrayTest.TestSortWideString;
+var
+  Arr: TArray<WideString>;
+begin
+  Arr := ['c', 'a', 'd', 'b'];
+  TArray.Sort<WideString>(Arr);
+  Assert.AreEqual(4, Integer(Length(Arr)));
+  Assert.AreEqual('a', Arr[0]);
+  Assert.AreEqual('b', Arr[1]);
+  Assert.AreEqual('c', Arr[2]);
+  Assert.AreEqual('d', Arr[3]);
+end;
+
+procedure TArrayTest.TestSortWideStringBig;
+var
+  Arr: TArray<WideString>;
+begin
+  Arr := TArrayBuilder.RandomWideString(BIG_TEST_LENGTH);
+  TArray.Sort<WideString>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<WideString>(Arr, soAscending));
+end;
+
+procedure TArrayTest.TestSortDescendingWideString;
+var
+  Arr: TArray<WideString>;
+begin
+  Arr := ['c', 'a', 'd', 'b'];
+  TArray.SortDescending<WideString>(Arr);
+  Assert.AreEqual(4, Integer(Length(Arr)));
+  Assert.AreEqual('d', Arr[0]);
+  Assert.AreEqual('c', Arr[1]);
+  Assert.AreEqual('b', Arr[2]);
+  Assert.AreEqual('a', Arr[3]);
+end;
+
+procedure TArrayTest.TestSortDescendingWideStringBig;
+var
+  Arr: TArray<WideString>;
+begin
+  Arr := TArrayBuilder.RandomWideString(BIG_TEST_LENGTH);
+  TArray.SortDescending<WideString>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<WideString>(Arr, soDescending));
 end;
 
 procedure TArrayTest.TestBinarySearchString;
@@ -790,6 +914,83 @@ begin
   TArray.SortDescending<UInt64>(Arr);
   Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
   Assert.IsTrue(TArrayBuilder.IsArraySorted<UInt64>(Arr, soDescending));
+end;
+
+procedure TArrayTest.TestReverseSmallIntBig;
+var
+  Arr: TArray<SmallInt>;
+begin
+  Arr := TArrayBuilder.RandomSmallInt(BIG_TEST_LENGTH);
+  TArray.Sort<SmallInt>(Arr);
+  TArray.Reverse<SmallInt>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<SmallInt>(Arr, soDescending));
+end;
+
+procedure TArrayTest.TestReverseCardinalBig;
+var
+  Arr: TArray<Cardinal>;
+begin
+  Arr := TArrayBuilder.RandomCardinal(BIG_TEST_LENGTH);
+  TArray.Sort<Cardinal>(Arr);
+  TArray.Reverse<Cardinal>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<Cardinal>(Arr, soDescending));
+end;
+
+procedure TArrayTest.TestReverseInt64Big;
+var
+  Arr: TArray<Int64>;
+begin
+  Arr := TArrayBuilder.RandomInt64(BIG_TEST_LENGTH);
+  TArray.Sort<Int64>(Arr);
+  TArray.Reverse<Int64>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<Int64>(Arr, soDescending));
+end;
+
+procedure TArrayTest.TestReverseUInt64Big;
+var
+  Arr: TArray<UInt64>;
+begin
+  Arr := TArrayBuilder.RandomUInt64(BIG_TEST_LENGTH);
+  TArray.Sort<UInt64>(Arr);
+  TArray.Reverse<UInt64>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<UInt64>(Arr, soDescending));
+end;
+
+procedure TArrayTest.TestReverseDoubleBig;
+var
+  Arr: TArray<Double>;
+begin
+  Arr := TArrayBuilder.RandomDouble(BIG_TEST_LENGTH);
+  TArray.Sort<Double>(Arr);
+  TArray.Reverse<Double>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<Double>(Arr, soDescending));
+end;
+
+procedure TArrayTest.TestReverseSingleBig;
+var
+  Arr: TArray<Single>;
+begin
+  Arr := TArrayBuilder.RandomSingle(BIG_TEST_LENGTH);
+  TArray.Sort<Single>(Arr);
+  TArray.Reverse<Single>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<Single>(Arr, soDescending));
+end;
+
+procedure TArrayTest.TestReverseExtendedBig;
+var
+  Arr: TArray<Extended>;
+begin
+  Arr := TArrayBuilder.RandomExtended(BIG_TEST_LENGTH);
+  TArray.Sort<Extended>(Arr);
+  TArray.Reverse<Extended>(Arr);
+  Assert.IsTrue(Length(Arr) = BIG_TEST_LENGTH);
+  Assert.IsTrue(TArrayBuilder.IsArraySorted<Extended>(Arr, soDescending));
 end;
 
 initialization

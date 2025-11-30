@@ -221,7 +221,7 @@ type
   public
     class function Create: TSyncYield; static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     procedure Reset; {$IFDEF HAS_INLINE} inline; {$ENDIF}
-    procedure Execute;
+    procedure Execute(const ForceSleep: Boolean = False);
 
     property Count: Byte read FCount write FCount;
   end;
@@ -1323,6 +1323,8 @@ type
     class procedure SortFloats<T>(const Values: Pointer; const Count: NativeInt); static;
     class procedure SortDescendingFloats<T>(const Values: Pointer; const Count: NativeInt); static;
 
+    class function LessBinary<T>(const A, B: Pointer): Boolean; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+    class procedure InsertionSortBinaries<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt); static; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     class procedure SortBinaries<T>(const Values: Pointer; const Count: NativeInt; var PivotBig: T); static;
     class procedure SortDescendingBinaries<T>(const Values: Pointer; const Count: NativeInt; var PivotBig: T); static;
 
@@ -2172,6 +2174,9 @@ type
     Length: NativeInt;
   end;
 
+var
+  _IsMultiCore: Boolean;
+
 function ListIndexErrorMsg(AIndex, AMaxIndex: Integer; AListObjName: string = ''): string;
 begin
   Result := Format(SListIndexError, [AIndex]);
@@ -2332,7 +2337,7 @@ begin
   Self.FCount := 0;
 end;
 
-procedure TSyncYield.Execute;
+procedure TSyncYield.Execute(const ForceSleep: Boolean = False);
 var
   LCount: Integer;
 begin
@@ -2341,16 +2346,41 @@ begin
   FCount := LCount;
   Dec(LCount);
 
-  case (LCount and 7) of
-    0..4: System.YieldProcessor;
-    5, 6:
+  // Slightly changed version: Do not YieldProcessor if CPU count = 1 (yes, VMs with 1 CPU are possible and exist)
+  // Call Sleep(0) before trying Sleep(1): yields to any thread *of same or higher priority* on any processor vs
+  // yields to any thread on any processor
+  //
+  // ---- Yield execution matrix ----
+  // Stage 0..3: YieldProcessor (only if CPU Count > 1 AND not ForceSleep)
+  // Stage 4..5: SwitchToThread / sched_yield
+  // Stage 6   : Sleep(0)
+  // Stage 7   : Sleep(1)
+  //
+  // On single-core: Skip YieldProcessor entirely (won't break the lock anyway)
+  // --------------------------------
+  case LCount and 7 of
+    0..3:
       begin
-        {$IFDEF MSWINDOWS}
-        SwitchToThread;
-        {$ELSE .POSIX}
-        sched_yield;
-        {$ENDIF}
+        if (not ForceSleep) and _IsMultiCore then
+          System.YieldProcessor
+        else
+          Sleep(0);
       end;
+    4..5:
+      begin
+        if (not ForceSleep) and _IsMultiCore then
+        begin
+          {$IFDEF MSWINDOWS}
+          SwitchToThread;
+          {$ELSE}
+          sched_yield;
+          {$ENDIF}
+        end
+        else
+          Sleep(0);
+      end;
+    6:
+      Sleep(0);
   else
     Sleep(1);
   end;
@@ -12705,9 +12735,117 @@ begin
 end;
 {$WARNINGS ON}
 
+{$WARNINGS OFF} // compiler can't identify variable initialization in case statement
+class procedure TArray.InsertionSortBinaries<T>(const Values: Pointer; const LeftIdx, RightIdx: NativeInt);
+var
+  I, J: NativeInt;
+  Temp: T;
+  PItems: ^T;
+
+begin
+  PItems := Values;
+  for I := LeftIdx + 1 to RightIdx do
+  begin
+    Temp := TRAIIHelper<T>.P(PItems)[I];
+    J := I - 1;
+
+    while (J >= LeftIdx) and LessBinary<T>(@Temp, PItems + J) do
+    begin
+      TRAIIHelper<T>.P(PItems)[J + 1] := TRAIIHelper<T>.P(PItems)[J];
+      Dec(J);
+    end;
+
+    TRAIIHelper<T>.P(PItems)[J + 1] := Temp;
+  end;
+end;
+{$WARNINGS ON}
+
+class function TArray.LessBinary<T>(const A, B: Pointer): Boolean;
+  var
+    MA, MB: NativeUInt;
+    BufferPivot, BufferItem: Pointer;
+    Cmp: Integer;
+  begin
+    MA := TArray.SortBinaryMarker<T>(A);
+    MB := TArray.SortBinaryMarker<T>(B);
+    if (MA < MB) then
+      Exit(True);
+    if (MA > MB) then
+      Exit(False);
+
+    // same logic as SortBinaries
+    case GetTypeKind(T) of
+      tkMethod:
+        begin
+          Cmp := 0;
+          if (PPointer(B)^ <> PPointer(A)^) then
+          begin
+            if (NativeUInt(PPointer(B)^) > NativeUInt(PPointer(A)^)) then
+              Cmp := 1
+            else
+              Cmp := -1;
+          end;
+          Result := Cmp > 0;
+          Exit;
+        end;
+      tkString:
+        begin
+          Cmp := InterfaceDefaults.Compare_OStr(nil, PByte(B), PByte(A));
+          Result := Cmp > 0;
+          Exit;
+        end;
+      tkLString, tkWString, tkUString, tkDynArray:
+        begin
+          BufferPivot := Pointer(PPointer(B)^);
+          BufferItem := Pointer(PPointer(A)^);
+          if (BufferPivot = BufferItem) then
+            Exit(False);
+          case GetTypeKind(T) of
+            tkLString:
+              Cmp := InterfaceDefaults.Compare_LStr(nil, BufferPivot, BufferItem);
+            {$IFDEF MSWINDOWS}
+            tkWString:
+              Cmp := InterfaceDefaults.Compare_WStr(nil, BufferPivot, BufferItem);
+            {$ELSE}
+            tkWString,
+            {$ENDIF}
+            tkUString:
+              Cmp := InterfaceDefaults.Compare_UStr(nil, BufferPivot, BufferItem);
+            tkDynArray:
+              Cmp := InterfaceDefaults.Compare_Dyn(InterfaceDefaults.TDefaultComparer<T>.Instance,
+                BufferPivot, BufferItem);
+          else
+            Cmp := 0;
+          end;
+          Result := Cmp > 0;
+          Exit;
+        end;
+    else
+      case SizeOf(T) of
+        0..SizeOf(Cardinal):
+          Exit(False);
+        {$IFDEF LARGEINT}
+        SizeOf(Int64):
+          begin
+            Cmp := InterfaceDefaults.Compare_Bin8(nil, PInt64(B)^, PInt64(A)^);
+            Result := Cmp > 0;
+            Exit;
+          end;
+        {$ENDIF}
+      else
+        begin
+          Cmp := InterfaceDefaults.Compare_Bin(InterfaceDefaults.TDefaultComparer<T>.Instance,
+            PByte(B), PByte(A));
+          Result := Cmp > 0;
+          Exit;
+        end;
+      end;
+    end;
+  end;
+
 class procedure TArray.SortBinaries<T>(const Values: Pointer; const Count: NativeInt; var PivotBig: T);
 label
-  proc_loop, proc_loop_current, swap_loop;
+  proc_loop, proc_loop_current, swap_loop, next_iteration;
 var
   Index: NativeInt;
   Temp1: Byte;
@@ -12721,6 +12859,8 @@ var
   Buffer: Pointer;
   StackItem: ^TSortStackItem<T>;
   Stack: TSortStack<T>;
+  PivotItem: Pointer;
+  PartitionSize, LeftIdx, RightIdx: NativeInt;
 begin
   Stack[0].First := Values;
   Stack[0].Last := TRAIIHelper<T>.P(Values) + Count - 1;
@@ -12732,22 +12872,35 @@ begin
   I := StackItem^.First;
   J := StackItem^.Last;
 
+  PartitionSize := SortItemCount<T>(I, J);
+  // Run insertion sort in small partitions
+  if (PartitionSize > 0) and (PartitionSize < INSERTION_SORT_THRESHOLD) then
+  begin
+    LeftIdx := SortItemCount<T>(Values, I) - 1;
+    RightIdx := LeftIdx + PartitionSize - 1;
+    TArray.InsertionSortBinaries<T>(Values, LeftIdx, RightIdx);
+    I := StackItem^.Last;
+    J := StackItem^.First;
+    goto next_iteration;
+  end;
+
   // pivot
+  PivotItem := SortItemPivot<T>(I, J, TComparer<T>.Default);
   if (SizeOf(T) <= SizeOf(Pivot)) then
   begin
     if (SizeOf(T) = SizeOf(Pointer)) then
     begin
-      Pivot.Ptr := Pointer(SortItemPivot<T>(I, J)^);
+      Pivot.Ptr := Pointer(PivotItem^);
     end
     else
     begin
-      TArray.Copy<T>(@Pivot, SortItemPivot<T>(I, J));
+      TArray.Copy<T>(@Pivot, PivotItem);
     end;
     X := TArray.SortBinaryMarker<T>(@Pivot);
   end
   else
   begin
-    TArray.Copy<T>(@PivotBig, SortItemPivot<T>(I, J));
+    TArray.Copy<T>(@PivotBig, PivotItem);
     X := TArray.SortBinaryMarker<T>(@PivotBig);
   end;
 
@@ -13081,6 +13234,7 @@ begin
   end;
 
   // next iteration
+  next_iteration:
   StackItem := SortItemNext<T>(StackItem, I, J);
   if (NativeInt(StackItem) >= 0) then
     goto proc_loop_current;
@@ -13105,6 +13259,7 @@ var
   Buffer: Pointer;
   StackItem: ^TSortStackItem<T>;
   Stack: TSortStack<T>;
+  PivotItem: Pointer;
 begin
   Stack[0].First := Values;
   Stack[0].Last := TRAIIHelper<T>.P(Values) + Count - 1;
@@ -13117,21 +13272,22 @@ begin
   J := StackItem^.Last;
 
   // pivot
+  PivotItem := SortItemPivot<T>(I, J, TComparer<T>.Default);
   if (SizeOf(T) <= SizeOf(Pivot)) then
   begin
     if (SizeOf(T) = SizeOf(Pointer)) then
     begin
-      Pivot.Ptr := Pointer(SortItemPivot<T>(I, J)^);
+      Pivot.Ptr := Pointer(PivotItem^);
     end
     else
     begin
-      TArray.Copy<T>(@Pivot, SortItemPivot<T>(I, J));
+      TArray.Copy<T>(@Pivot, PivotItem);
     end;
     X := TArray.SortBinaryMarker<T>(@Pivot);
   end
   else
   begin
-    TArray.Copy<T>(@PivotBig, SortItemPivot<T>(I, J));
+    TArray.Copy<T>(@PivotBig, PivotItem);
     X := TArray.SortBinaryMarker<T>(@PivotBig);
   end;
 
@@ -24509,6 +24665,7 @@ begin
 end;
 
 initialization
+  _IsMultiCore := System.CPUCount > 1;
   TArray.INSERTION_SORT_THRESHOLD := 16;
   {$IF CompilerVersion < 31}
   TOSTime.Initialize;

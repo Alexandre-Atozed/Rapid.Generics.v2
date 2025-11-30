@@ -70,6 +70,8 @@ type
     class function RandomSingle(Count: Integer): TArray<Single>; static;
     class function RandomDouble(Count: Integer): TArray<Double>; static;
     class function RandomExtended(Count: Integer): TArray<Extended>; static;
+    class function RandomString(Count: Integer): TArray<string>; static;
+    class function RandomWideString(Count: Integer): TArray<WideString>; static;
     class function IsArraySorted<T>(const Values: TArray<T>; const Order: TSortOrder; const Comparer: IComparer<T> = nil): Boolean; static;
   end;
 
@@ -225,6 +227,28 @@ begin
     function: Extended
     begin
       Result := Random;
+    end
+  );
+end;
+
+class function TArrayBuilder.RandomString(Count: Integer): TArray<string>;
+begin
+  Result := Build<string>(
+    Count,
+    function: string
+    begin
+      Result := 'String ' + IntToStr(Random(Count));
+    end
+  );
+end;
+
+class function TArrayBuilder.RandomWideString(Count: Integer): TArray<WideString>;
+begin
+  Result := Build<WideString>(
+    Count,
+    function: WideString
+    begin
+      Result := 'WideString ' + IntToStr(Random(Count));
     end
   );
 end;
