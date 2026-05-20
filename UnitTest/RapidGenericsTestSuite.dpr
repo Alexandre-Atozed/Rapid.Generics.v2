@@ -96,7 +96,7 @@ begin
     runner := TDUnitX.CreateRunner;
     runner.UseRTTI := True;
     // tell the runner how we will log things
-    logger := TDUnitXConsoleLogger.Create(true);
+    logger := TDUnitXConsoleLogger.Create(True);
     nunitLogger := TDUnitXXMLNUnitFileLogger.Create;
     runner.AddLogger(logger);
     runner.AddLogger(nunitLogger);

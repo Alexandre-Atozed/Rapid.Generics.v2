@@ -1603,7 +1603,7 @@ begin
   Assert.IsTrue(FList.Contains(Rec));
 
   // This will remove only 1 element because all the others have the wrong Rec.y string ;-)
-  // so in the end the actuall count must be the original List.Count - 1
+  // so in the end the actual count must be the original List.Count - 1
   for i := MANY_ITEMS_COUNT downto 1 do
   begin
     Rec.x := i;

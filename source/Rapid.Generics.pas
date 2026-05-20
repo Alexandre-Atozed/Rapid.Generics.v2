@@ -2579,7 +2579,7 @@ begin
     end
     else
     begin
-      AtomicDecrement(FValue, 2)
+      AtomicDecrement(FValue, 2);
     end;
   end;
 
@@ -2718,7 +2718,7 @@ begin
     end
     else
     begin
-      AtomicDecrement(FValue, 2)
+      AtomicDecrement(FValue, 2);
     end;
   end;
 
@@ -7670,7 +7670,7 @@ asm
   or eax, -1
   xor edx, edx
   mov ecx, 1
-  comiss xmm1,xmm2
+  comiss xmm1, xmm2
   cmovz eax, edx
   cmova eax, ecx
 end;
@@ -7726,7 +7726,7 @@ asm
   or eax, -1
   xor edx, edx
   mov ecx, 1
-  comisd xmm1,xmm2
+  comisd xmm1, xmm2
   cmovz eax, edx
   cmova eax, ecx
 end;
@@ -7783,7 +7783,7 @@ asm
   or eax, -1
   xor edx, edx
   mov ecx, 1
-  comisd xmm1,xmm2
+  comisd xmm1, xmm2
   cmovz eax, edx
   cmova eax, ecx
 end;
@@ -16430,7 +16430,7 @@ class function TArray.Contains<T>(const Values: array of T; const Item: T; const
 var
   dummy: Integer;
 begin
-  Result := TArray.InternalSearch<T>(@Values[0], 0, Length(Values), Item, dummy, Pointer(Comparer))
+  Result := TArray.InternalSearch<T>(@Values[0], 0, Length(Values), Item, dummy, Pointer(Comparer));
 end;
 
 { TCollectionEnumeratorData<T> }
@@ -16874,7 +16874,7 @@ begin
   begin
     if Assigned(FInternalValueNotify) then
     begin
-      // Both KeyNotify() and ValueNotify() are overriden
+      // Both KeyNotify() and ValueNotify() are overridden
       if (TMethod(FInternalItemNotify).Code = @TCustomDictionary<TKey, TValue>.ItemNotifyCaller) then
       begin
         for i := 1 to Count do
@@ -18065,7 +18065,7 @@ end;
 
 procedure TDictionary<TKey, TValue>.Remove(const Key: TKey);
 begin
-  Self.InternalFindItem(Key, FOUND_DELETE + EMPTY_NONE)
+  Self.InternalFindItem(Key, FOUND_DELETE + EMPTY_NONE);
 end;
 
 function TDictionary<TKey, TValue>.ExtractPair(const Key: TKey): TPair<TKey, TValue>;
@@ -18933,7 +18933,7 @@ end;
 
 procedure TRapidDictionary<TKey, TValue>.Remove(const Key: TKey);
 begin
-  Self.InternalFindItem(Key, FOUND_DELETE + EMPTY_NONE)
+  Self.InternalFindItem(Key, FOUND_DELETE + EMPTY_NONE);
 end;
 
 function TRapidDictionary<TKey, TValue>.ExtractPair(const Key: TKey): TPair<TKey, TValue>;
@@ -19175,7 +19175,7 @@ begin
       OutOfMemoryError;
   end;
 
-  SetCapacity(NewCapacity)
+  SetCapacity(NewCapacity);
 end;
 
 procedure TCustomList<T>.Clear;
@@ -24376,7 +24376,7 @@ begin
   if (TMethod(VMTKeyNotify).Code <> @TCustomDictionary<TKey, TValue>.KeyNotify) then
   begin
     if (doOwnsKeys in FOwnerships) then
-      // AM: Fix: when doOwnsKeys, need to free keys in descendant classes with overriden notify method
+      // AM: Fix: when doOwnsKeys, need to free keys in descendant classes with overridden notify method
       TMethod(FInternalKeyNotify).Code := @TObjectDictionary<TKey, TValue>.DisposeKeyNotifyCaller
     else
       TMethod(FInternalKeyNotify).Code := @TCustomDictionary<TKey, TValue>.KeyNotifyCaller;
@@ -24403,7 +24403,7 @@ begin
   if (TMethod(VMTValueNotify).Code <> @TCustomDictionary<TKey, TValue>.ValueNotify) then
   begin
     if (doOwnsValues in FOwnerships) then
-      // AM: Fix: when doOwnsValues, need to free keys in descendant classes with overriden notify method
+      // AM: Fix: when doOwnsValues, need to free keys in descendant classes with overridden notify method
       TMethod(FInternalValueNotify).Code := @TObjectDictionary<TKey, TValue>.DisposeValueNotifyCaller
     else
       TMethod(FInternalValueNotify).Code := @TCustomDictionary<TKey, TValue>.ValueNotifyCaller;
@@ -24428,9 +24428,9 @@ begin
   TMethod(FInternalItemNotify).Data := Self;
   if (TMethod(VMTKeyNotify).Code <> @TCustomDictionary<TKey, TValue>.KeyNotify) and
     (TMethod(VMTValueNotify).Code <> @TCustomDictionary<TKey, TValue>.ValueNotify) then
-      // Both KeyNotify() and ValueNotify() are overriden
+      // Both KeyNotify() and ValueNotify() are overridden
   begin
-    // AM: Fix: when doOwnsKeys or doOwnsValues in descendant classes with overriden notify method
+    // AM: Fix: when doOwnsKeys or doOwnsValues in descendant classes with overridden notify method
     if (doOwnsKeys in FOwnerships) or (doOwnsValues in FOwnerships) then
       TMethod(FInternalItemNotify).Code := @TObjectDictionary<TKey, TValue>.ItemNotifyEvents
     else
