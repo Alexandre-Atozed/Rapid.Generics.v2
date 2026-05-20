@@ -1977,7 +1977,7 @@ type
   end;
 
 { TThreadList, TThreadedQueue classes
-  Deprected synchronized routine }
+  Deprecated synchronized routine }
 
   TThreadList<T> = class(TCustomObject)
   private
