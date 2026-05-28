@@ -269,7 +269,7 @@ begin
 
   for I := 0 to High(Values) - 1 do
   begin
-    Res := Cmp.Compare(Values[I], Values[I+1]);
+    Res := Cmp.Compare(Values[I], Values[I + 1]);
 
     case Order of
       soAscending:

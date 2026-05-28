@@ -566,28 +566,28 @@ end;
 
 function SystemListIndexOf.Execute: T;
 begin
-  Result := List.IndexOf(Low(T))
+  Result := List.IndexOf(Low(T));
 end;
 
 { RapidListIndexOf }
 
 function RapidListIndexOf.Execute: T;
 begin
-  Result := List.IndexOf(Low(T))
+  Result := List.IndexOf(Low(T));
 end;
 
 { SystemListIndexOf2 }
 
 function SystemListIndexOf2.Execute: T;
 begin
-  Result := List.IndexOf(High(T))
+  Result := List.IndexOf(High(T));
 end;
 
 { RapidListIndexOf2 }
 
 function RapidListIndexOf2.Execute: T;
 begin
-  Result := List.IndexOf(High(T))
+  Result := List.IndexOf(High(T));
 end;
 
 { SystemListReverse }
