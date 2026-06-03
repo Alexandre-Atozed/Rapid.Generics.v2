@@ -1088,7 +1088,7 @@ begin
   inherited;
 end;
 
-{ TCustomObjectDictionaryIOTest } // Owns Values, overriden KeyNotify and ValueNotify
+{ TCustomObjectDictionaryIOTest } // Owns Values, overridden KeyNotify and ValueNotify
 
 procedure TCustomObjectDictionaryIOTest.Setup;
 begin
