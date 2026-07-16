@@ -318,6 +318,89 @@ type
     procedure TestMany;
   end;
 
+type
+  TTestRecord = record
+    Field1: Integer;
+    Field2: Integer;
+  end;
+
+  TRecordDictionaryITest = class
+  private
+    FDictionary: TDictionary<TTestRecord, Integer>;
+  public
+    procedure Setup;
+    procedure TearDown;
+
+    procedure TestAdd;
+    procedure TestRemove;
+    procedure TestFind;
+    procedure TestFindOrAdd;
+    procedure TestExtractPair;
+    procedure TestTryGetValue;
+    procedure TestAddOrSetValue;
+    procedure TestContainsKey;
+    procedure TestDuplicateKey;
+    procedure TestDifferentRecordsSameFirstField;
+    procedure TestDifferentRecordsSameSecondField;
+    procedure TestOverwriteValue;
+    procedure TestMany;
+
+    // Additional stress tests
+    procedure TestNegativeValues;
+    procedure TestZeroValues;
+    procedure TestMinMaxValues;
+    procedure TestSwappedFields;
+    procedure TestManySameFirstField;
+    procedure TestInsertRemoveInsert;
+    procedure TestRandomized;
+  end;
+
+  TTestObject2 = class
+  private
+    FValue: Integer;
+  public
+    constructor Create(const AValue: Integer);
+    property Value: Integer read FValue write FValue;
+  end;
+
+  TObjectDictionaryITest = class
+  private
+    FDictionary: TObjectDictionary<TTestRecord, TTestObject2>;
+
+    function MakeKey(const AField1, AField2: Integer): TTestRecord;
+    function MakeValue(const AValue: Integer): TTestObject2;
+  public
+    procedure Setup;
+    procedure TearDown;
+
+    procedure TestAdd;
+    procedure TestRemove;
+    procedure TestFind;
+    procedure TestFindOrAdd;
+    procedure TestExtractPair;
+    procedure TestTryGetValue;
+    procedure TestAddOrSetValue;
+    procedure TestContainsKey;
+    procedure TestDuplicateKey;
+    procedure TestDifferentRecordsSameFirstField;
+    procedure TestDifferentRecordsSameSecondField;
+    procedure TestOverwriteValue;
+    procedure TestMany;
+
+    procedure TestNegativeValues;
+    procedure TestZeroValues;
+    procedure TestMinMaxValues;
+    procedure TestSwappedFields;
+    procedure TestManySameFirstField;
+    procedure TestInsertRemoveInsert;
+    procedure TestRandomized;
+
+    // Ownership / lifetime tests
+    procedure TestDictionaryOwnsValues;
+    procedure TestRemoveDestroysValue;
+    procedure TestExtractPairTransfersValueOwnership;
+  end;
+
 implementation
 
 uses
@@ -1503,6 +1586,854 @@ begin
   Assert.AreEqual(0, FDictionary.Count);
 end;
 
+{ TRecordDictionaryITest }
+
+procedure TRecordDictionaryITest.Setup;
+begin
+  FDictionary := TDictionary<TTestRecord, Integer>.Create;
+end;
+
+procedure TRecordDictionaryITest.TearDown;
+begin
+  FreeAndNil(FDictionary);
+end;
+
+procedure TRecordDictionaryITest.TestAdd;
+var
+  Key: TTestRecord;
+begin
+  Key.Field1 := 10;
+  Key.Field2 := 20;
+
+  FDictionary.Add(Key, 1);
+
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(1, FDictionary[Key]);
+end;
+
+procedure TRecordDictionaryITest.TestRemove;
+var
+  Key: TTestRecord;
+begin
+  Key.Field1 := 10;
+  Key.Field2 := 20;
+
+  FDictionary.Add(Key, 1);
+  FDictionary.Remove(Key);
+
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+procedure TRecordDictionaryITest.TestFind;
+var
+  Key: TTestRecord;
+begin
+  Key.Field1 := 11;
+  Key.Field2 := 22;
+
+  FDictionary.Add(Key, 99);
+
+  Assert.AreEqual(99, FDictionary[Key]);
+end;
+
+procedure TRecordDictionaryITest.TestFindOrAdd;
+var
+  Key: TTestRecord;
+  Value: Integer;
+begin
+  Key.Field1 := 3;
+  Key.Field2 := 7;
+
+  if not FDictionary.TryGetValue(Key, Value) then
+    FDictionary.Add(Key, 15);
+
+  Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+  Assert.AreEqual(15, Value);
+end;
+
+procedure TRecordDictionaryITest.TestExtractPair;
+var
+  Key: TTestRecord;
+  Pair: TPair<TTestRecord, Integer>;
+begin
+  Key.Field1 := 100;
+  Key.Field2 := 200;
+
+  FDictionary.Add(Key, 7);
+
+  Pair := FDictionary.ExtractPair(Key);
+
+  Assert.AreEqual(7, Pair.Value);
+  Assert.AreEqual(100, Pair.Key.Field1);
+  Assert.AreEqual(200, Pair.Key.Field2);
+  Assert.IsFalse(FDictionary.ContainsKey(Key));
+end;
+
+procedure TRecordDictionaryITest.TestTryGetValue;
+var
+  Key: TTestRecord;
+  Value: Integer;
+begin
+  Key.Field1 := 44;
+  Key.Field2 := 55;
+
+  FDictionary.Add(Key, 8);
+
+  Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+  Assert.AreEqual(8, Value);
+end;
+
+procedure TRecordDictionaryITest.TestAddOrSetValue;
+var
+  Key: TTestRecord;
+begin
+  Key.Field1 := 10;
+  Key.Field2 := 11;
+
+  FDictionary.AddOrSetValue(Key, 5);
+  Assert.AreEqual(5, FDictionary[Key]);
+
+  FDictionary.AddOrSetValue(Key, 123);
+
+  Assert.AreEqual(123, FDictionary[Key]);
+  Assert.AreEqual(1, FDictionary.Count);
+end;
+
+procedure TRecordDictionaryITest.TestContainsKey;
+var
+  K1, K2: TTestRecord;
+begin
+  K1.Field1 := 1;
+  K1.Field2 := 2;
+
+  K2.Field1 := 1;
+  K2.Field2 := 3;
+
+  FDictionary.Add(K1, 1);
+
+  Assert.IsTrue(FDictionary.ContainsKey(K1));
+  Assert.IsFalse(FDictionary.ContainsKey(K2));
+end;
+
+procedure TRecordDictionaryITest.TestDuplicateKey;
+var
+  Key: TTestRecord;
+begin
+  Key.Field1 := 5;
+  Key.Field2 := 6;
+
+  FDictionary.Add(Key, 1);
+
+  Assert.WillRaise(
+    procedure
+    begin
+      FDictionary.Add(Key, 2);
+    end,
+    EListError);
+end;
+
+procedure TRecordDictionaryITest.TestDifferentRecordsSameFirstField;
+var
+  K1, K2: TTestRecord;
+begin
+  K1.Field1 := 10;
+  K1.Field2 := 20;
+
+  K2.Field1 := 10;
+  K2.Field2 := 21;
+
+  FDictionary.Add(K1, 1);
+  FDictionary.Add(K2, 2);
+
+  Assert.AreEqual(2, FDictionary.Count);
+  Assert.AreEqual(1, FDictionary[K1]);
+  Assert.AreEqual(2, FDictionary[K2]);
+end;
+
+procedure TRecordDictionaryITest.TestDifferentRecordsSameSecondField;
+var
+  K1, K2: TTestRecord;
+begin
+  K1.Field1 := 30;
+  K1.Field2 := 40;
+
+  K2.Field1 := 31;
+  K2.Field2 := 40;
+
+  FDictionary.Add(K1, 5);
+  FDictionary.Add(K2, 6);
+
+  Assert.AreEqual(5, FDictionary[K1]);
+  Assert.AreEqual(6, FDictionary[K2]);
+end;
+
+procedure TRecordDictionaryITest.TestOverwriteValue;
+var
+  Key: TTestRecord;
+begin
+  Key.Field1 := 8;
+  Key.Field2 := 9;
+
+  FDictionary.Add(Key, 1);
+  FDictionary[Key] := 999;
+
+  Assert.AreEqual(999, FDictionary[Key]);
+end;
+
+procedure TRecordDictionaryITest.TestMany;
+const
+  ItemCount = 100000;
+var
+  I: Integer;
+  Key: TTestRecord;
+  Value: Integer;
+begin
+  for I := 1 to ItemCount do
+  begin
+    Key.Field1 := I;
+    Key.Field2 := I * 3 + 7;
+    FDictionary.Add(Key, I);
+  end;
+
+  Assert.AreEqual(ItemCount, FDictionary.Count);
+
+  for I := 1 to ItemCount do
+  begin
+    Key.Field1 := I;
+    Key.Field2 := I * 3 + 7;
+
+    Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+    Assert.AreEqual(I, Value);
+  end;
+
+  for I := 1 to ItemCount do
+  begin
+    Key.Field1 := I;
+    Key.Field2 := I * 3 + 7;
+    FDictionary.Remove(Key);
+  end;
+
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+procedure TRecordDictionaryITest.TestNegativeValues;
+var
+  Key: TTestRecord;
+begin
+  Key.Field1 := -12345;
+  Key.Field2 := -98765;
+
+  FDictionary.Add(Key, 42);
+
+  Assert.IsTrue(FDictionary.ContainsKey(Key));
+  Assert.AreEqual(42, FDictionary[Key]);
+end;
+
+procedure TRecordDictionaryITest.TestZeroValues;
+var
+  Key: TTestRecord;
+begin
+  Key.Field1 := 0;
+  Key.Field2 := 0;
+
+  FDictionary.Add(Key, 100);
+
+  Assert.IsTrue(FDictionary.ContainsKey(Key));
+  Assert.AreEqual(100, FDictionary[Key]);
+end;
+
+procedure TRecordDictionaryITest.TestMinMaxValues;
+var
+  K1, K2: TTestRecord;
+begin
+  K1.Field1 := Low(Integer);
+  K1.Field2 := High(Integer);
+
+  K2.Field1 := High(Integer);
+  K2.Field2 := Low(Integer);
+
+  FDictionary.Add(K1, 1);
+  FDictionary.Add(K2, 2);
+
+  Assert.AreEqual(1, FDictionary[K1]);
+  Assert.AreEqual(2, FDictionary[K2]);
+end;
+
+procedure TRecordDictionaryITest.TestSwappedFields;
+var
+  K1, K2: TTestRecord;
+begin
+  K1.Field1 := 1;
+  K1.Field2 := 2;
+
+  K2.Field1 := 2;
+  K2.Field2 := 1;
+
+  FDictionary.Add(K1, 10);
+  FDictionary.Add(K2, 20);
+
+  Assert.AreEqual(2, FDictionary.Count);
+  Assert.AreEqual(10, FDictionary[K1]);
+  Assert.AreEqual(20, FDictionary[K2]);
+end;
+
+procedure TRecordDictionaryITest.TestManySameFirstField;
+const
+  Count = 10000;
+var
+  I: Integer;
+  Key: TTestRecord;
+  Value: Integer;
+begin
+  for I := 1 to Count do
+  begin
+    Key.Field1 := 12345;
+    Key.Field2 := I;
+
+    FDictionary.Add(Key, I);
+  end;
+
+  Assert.AreEqual(Count, FDictionary.Count);
+
+  for I := 1 to Count do
+  begin
+    Key.Field1 := 12345;
+    Key.Field2 := I;
+
+    Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+    Assert.AreEqual(I, Value);
+  end;
+end;
+
+procedure TRecordDictionaryITest.TestInsertRemoveInsert;
+var
+  Key: TTestRecord;
+begin
+  Key.Field1 := 111;
+  Key.Field2 := 222;
+
+  FDictionary.Add(Key, 1);
+
+  Assert.AreEqual(1, FDictionary[Key]);
+
+  FDictionary.Remove(Key);
+
+  Assert.IsFalse(FDictionary.ContainsKey(Key));
+
+  FDictionary.Add(Key, 999);
+
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(999, FDictionary[Key]);
+end;
+
+procedure TRecordDictionaryITest.TestRandomized;
+const
+  Count = 50000;
+var
+  RefDict: TDictionary<TTestRecord, Integer>;
+  Key: TTestRecord;
+  Value: Integer;
+  I: Integer;
+begin
+  RandSeed := 123456;
+
+  RefDict := TDictionary<TTestRecord, Integer>.Create;
+  try
+    while RefDict.Count < Count do
+    begin
+      Key.Field1 := Random(MaxInt);
+      Key.Field2 := Random(MaxInt);
+
+      if not RefDict.ContainsKey(Key) then
+      begin
+        RefDict.Add(Key, RefDict.Count);
+        FDictionary.Add(Key, RefDict.Count);
+      end;
+    end;
+
+    Assert.AreEqual(RefDict.Count, FDictionary.Count);
+
+    for Key in RefDict.Keys do
+    begin
+      Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+      Assert.AreEqual(RefDict[Key], Value);
+    end;
+
+    // Remove half of the entries
+    I := 0;
+    for Key in RefDict.Keys.ToArray do
+    begin
+      if Odd(I) then
+      begin
+        RefDict.Remove(Key);
+        FDictionary.Remove(Key);
+      end;
+      Inc(I);
+    end;
+
+    Assert.AreEqual(RefDict.Count, FDictionary.Count);
+
+    for Key in RefDict.Keys do
+    begin
+      Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+      Assert.AreEqual(RefDict[Key], Value);
+    end;
+  finally
+    RefDict.Free;
+  end;
+end;
+
+{ TObjectDictionaryITest }
+
+{ TTestObject2 }
+
+constructor TTestObject2.Create(const AValue: Integer);
+begin
+  inherited Create;
+  FValue := AValue;
+end;
+
+{ TObjectDictionaryITest }
+
+function TObjectDictionaryITest.MakeKey(
+  const AField1, AField2: Integer): TTestRecord;
+begin
+  Result.Field1 := AField1;
+  Result.Field2 := AField2;
+end;
+
+function TObjectDictionaryITest.MakeValue(
+  const AValue: Integer): TTestObject2;
+begin
+  Result := TTestObject2.Create(AValue);
+end;
+
+procedure TObjectDictionaryITest.Setup;
+begin
+  // TTestRecord is a value type, so only values can be owned.
+  FDictionary := TObjectDictionary<TTestRecord, TTestObject2>.Create(
+    [doOwnsValues]);
+end;
+
+procedure TObjectDictionaryITest.TearDown;
+begin
+  // doOwnsValues means this also frees all remaining TTestObject2 instances.
+  FreeAndNil(FDictionary);
+end;
+
+procedure TObjectDictionaryITest.TestAdd;
+var
+  Key: TTestRecord;
+begin
+  Key := MakeKey(10, 20);
+
+  FDictionary.Add(Key, MakeValue(1));
+
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(1, FDictionary[Key].Value);
+end;
+
+procedure TObjectDictionaryITest.TestRemove;
+var
+  Key: TTestRecord;
+begin
+  Key := MakeKey(10, 20);
+
+  FDictionary.Add(Key, MakeValue(1));
+  FDictionary.Remove(Key);
+
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+procedure TObjectDictionaryITest.TestFind;
+var
+  Key: TTestRecord;
+begin
+  Key := MakeKey(11, 22);
+
+  FDictionary.Add(Key, MakeValue(99));
+
+  Assert.AreEqual(99, FDictionary[Key].Value);
+end;
+
+procedure TObjectDictionaryITest.TestFindOrAdd;
+var
+  Key: TTestRecord;
+  Value: TTestObject2;
+begin
+  Key := MakeKey(3, 7);
+
+  if not FDictionary.TryGetValue(Key, Value) then
+    FDictionary.Add(Key, MakeValue(15));
+
+  Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+  Assert.AreEqual(15, Value.Value);
+end;
+
+procedure TObjectDictionaryITest.TestExtractPair;
+var
+  Key: TTestRecord;
+  Pair: TPair<TTestRecord, TTestObject2>;
+begin
+  Key := MakeKey(100, 200);
+
+  FDictionary.Add(Key, MakeValue(7));
+
+  Pair := FDictionary.ExtractPair(Key);
+  try
+    Assert.AreEqual(7, Pair.Value.Value);
+    Assert.AreEqual(100, Pair.Key.Field1);
+    Assert.AreEqual(200, Pair.Key.Field2);
+    Assert.IsFalse(FDictionary.ContainsKey(Key));
+  finally
+    // ExtractPair removes the entry. The caller now owns Pair.Value.
+    Pair.Value.Free;
+  end;
+end;
+
+procedure TObjectDictionaryITest.TestTryGetValue;
+var
+  Key: TTestRecord;
+  Value: TTestObject2;
+begin
+  Key := MakeKey(44, 55);
+
+  FDictionary.Add(Key, MakeValue(8));
+
+  Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+  Assert.AreEqual(8, Value.Value);
+end;
+
+procedure TObjectDictionaryITest.TestAddOrSetValue;
+var
+  Key: TTestRecord;
+begin
+  Key := MakeKey(10, 11);
+
+  FDictionary.AddOrSetValue(Key, MakeValue(5));
+  Assert.AreEqual(5, FDictionary[Key].Value);
+
+  // The dictionary frees the old value object because of doOwnsValues.
+  FDictionary.AddOrSetValue(Key, MakeValue(123));
+
+  Assert.AreEqual(123, FDictionary[Key].Value);
+  Assert.AreEqual(1, FDictionary.Count);
+end;
+
+procedure TObjectDictionaryITest.TestContainsKey;
+var
+  K1, K2: TTestRecord;
+begin
+  K1 := MakeKey(1, 2);
+  K2 := MakeKey(1, 3);
+
+  FDictionary.Add(K1, MakeValue(1));
+
+  Assert.IsTrue(FDictionary.ContainsKey(K1));
+  Assert.IsFalse(FDictionary.ContainsKey(K2));
+end;
+
+procedure TObjectDictionaryITest.TestDuplicateKey;
+var
+  Key: TTestRecord;
+  DuplicateValue: TTestObject2;
+begin
+  Key := MakeKey(5, 6);
+
+  FDictionary.Add(Key, MakeValue(1));
+
+  DuplicateValue := MakeValue(2);
+  try
+    Assert.WillRaise(
+      procedure
+      begin
+        FDictionary.Add(Key, DuplicateValue);
+      end,
+      EListError);
+  finally
+    // Add failed, so the dictionary did not take ownership.
+    DuplicateValue.Free;
+  end;
+end;
+
+procedure TObjectDictionaryITest.TestDifferentRecordsSameFirstField;
+var
+  K1, K2: TTestRecord;
+begin
+  K1 := MakeKey(10, 20);
+  K2 := MakeKey(10, 21);
+
+  FDictionary.Add(K1, MakeValue(1));
+  FDictionary.Add(K2, MakeValue(2));
+
+  Assert.AreEqual(2, FDictionary.Count);
+  Assert.AreEqual(1, FDictionary[K1].Value);
+  Assert.AreEqual(2, FDictionary[K2].Value);
+end;
+
+procedure TObjectDictionaryITest.TestDifferentRecordsSameSecondField;
+var
+  K1, K2: TTestRecord;
+begin
+  K1 := MakeKey(30, 40);
+  K2 := MakeKey(31, 40);
+
+  FDictionary.Add(K1, MakeValue(5));
+  FDictionary.Add(K2, MakeValue(6));
+
+  Assert.AreEqual(5, FDictionary[K1].Value);
+  Assert.AreEqual(6, FDictionary[K2].Value);
+end;
+
+procedure TObjectDictionaryITest.TestOverwriteValue;
+var
+  Key: TTestRecord;
+begin
+  Key := MakeKey(8, 9);
+
+  FDictionary.Add(Key, MakeValue(1));
+  FDictionary[Key] := MakeValue(999);
+
+  Assert.AreEqual(999, FDictionary[Key].Value);
+end;
+
+procedure TObjectDictionaryITest.TestMany;
+const
+  ItemCount = 100000;
+var
+  I: Integer;
+  Key: TTestRecord;
+  Value: TTestObject2;
+begin
+  for I := 1 to ItemCount do
+  begin
+    Key := MakeKey(I, I * 3 + 7);
+    FDictionary.Add(Key, MakeValue(I));
+  end;
+
+  Assert.AreEqual(ItemCount, FDictionary.Count);
+
+  for I := 1 to ItemCount do
+  begin
+    Key := MakeKey(I, I * 3 + 7);
+
+    Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+    Assert.AreEqual(I, Value.Value);
+  end;
+
+  for I := 1 to ItemCount do
+  begin
+    Key := MakeKey(I, I * 3 + 7);
+    FDictionary.Remove(Key);
+  end;
+
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+procedure TObjectDictionaryITest.TestNegativeValues;
+var
+  Key: TTestRecord;
+begin
+  Key := MakeKey(-12345, -98765);
+
+  FDictionary.Add(Key, MakeValue(42));
+
+  Assert.IsTrue(FDictionary.ContainsKey(Key));
+  Assert.AreEqual(42, FDictionary[Key].Value);
+end;
+
+procedure TObjectDictionaryITest.TestZeroValues;
+var
+  Key: TTestRecord;
+begin
+  Key := MakeKey(0, 0);
+
+  FDictionary.Add(Key, MakeValue(100));
+
+  Assert.IsTrue(FDictionary.ContainsKey(Key));
+  Assert.AreEqual(100, FDictionary[Key].Value);
+end;
+
+procedure TObjectDictionaryITest.TestMinMaxValues;
+var
+  K1, K2: TTestRecord;
+begin
+  K1 := MakeKey(Low(Integer), High(Integer));
+  K2 := MakeKey(High(Integer), Low(Integer));
+
+  FDictionary.Add(K1, MakeValue(1));
+  FDictionary.Add(K2, MakeValue(2));
+
+  Assert.AreEqual(1, FDictionary[K1].Value);
+  Assert.AreEqual(2, FDictionary[K2].Value);
+end;
+
+procedure TObjectDictionaryITest.TestSwappedFields;
+var
+  K1, K2: TTestRecord;
+begin
+  K1 := MakeKey(1, 2);
+  K2 := MakeKey(2, 1);
+
+  FDictionary.Add(K1, MakeValue(10));
+  FDictionary.Add(K2, MakeValue(20));
+
+  Assert.AreEqual(2, FDictionary.Count);
+  Assert.AreEqual(10, FDictionary[K1].Value);
+  Assert.AreEqual(20, FDictionary[K2].Value);
+end;
+
+procedure TObjectDictionaryITest.TestManySameFirstField;
+const
+  Count = 10000;
+var
+  I: Integer;
+  Key: TTestRecord;
+  Value: TTestObject2;
+begin
+  for I := 1 to Count do
+  begin
+    Key := MakeKey(12345, I);
+    FDictionary.Add(Key, MakeValue(I));
+  end;
+
+  Assert.AreEqual(Count, FDictionary.Count);
+
+  for I := 1 to Count do
+  begin
+    Key := MakeKey(12345, I);
+
+    Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+    Assert.AreEqual(I, Value.Value);
+  end;
+end;
+
+procedure TObjectDictionaryITest.TestInsertRemoveInsert;
+var
+  Key: TTestRecord;
+begin
+  Key := MakeKey(111, 222);
+
+  FDictionary.Add(Key, MakeValue(1));
+  Assert.AreEqual(1, FDictionary[Key].Value);
+
+  // The first object is freed by Remove because doOwnsValues is enabled.
+  FDictionary.Remove(Key);
+  Assert.IsFalse(FDictionary.ContainsKey(Key));
+
+  FDictionary.Add(Key, MakeValue(999));
+
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(999, FDictionary[Key].Value);
+end;
+
+procedure TObjectDictionaryITest.TestRandomized;
+const
+  Count = 50000;
+var
+  RefDict: TDictionary<TTestRecord, Integer>;
+  Key: TTestRecord;
+  Value: TTestObject2;
+  I: Integer;
+begin
+  RandSeed := 123456;
+
+  RefDict := TDictionary<TTestRecord, Integer>.Create;
+  try
+    while RefDict.Count < Count do
+    begin
+      Key := MakeKey(Random(MaxInt), Random(MaxInt));
+
+      if not RefDict.ContainsKey(Key) then
+      begin
+        RefDict.Add(Key, RefDict.Count);
+        FDictionary.Add(Key, MakeValue(RefDict.Count));
+      end;
+    end;
+
+    Assert.AreEqual(RefDict.Count, FDictionary.Count);
+
+    for Key in RefDict.Keys do
+    begin
+      Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+      Assert.AreEqual(RefDict[Key], Value.Value);
+    end;
+
+    I := 0;
+    for Key in RefDict.Keys.ToArray do
+    begin
+      if Odd(I) then
+      begin
+        RefDict.Remove(Key);
+
+        // Removes and frees the corresponding TTestObject2.
+        FDictionary.Remove(Key);
+      end;
+      Inc(I);
+    end;
+
+    Assert.AreEqual(RefDict.Count, FDictionary.Count);
+
+    for Key in RefDict.Keys do
+    begin
+      Assert.IsTrue(FDictionary.TryGetValue(Key, Value));
+      Assert.AreEqual(RefDict[Key], Value.Value);
+    end;
+  finally
+    RefDict.Free;
+  end;
+end;
+
+procedure TObjectDictionaryITest.TestDictionaryOwnsValues;
+var
+  Key: TTestRecord;
+begin
+  Key := MakeKey(1, 2);
+
+  FDictionary.Add(Key, MakeValue(100));
+
+  Assert.AreEqual(1, FDictionary.Count);
+  Assert.AreEqual(100, FDictionary[Key].Value);
+
+  // Do not free FDictionary[Key] manually.
+  // TearDown owns and frees it.
+end;
+
+procedure TObjectDictionaryITest.TestRemoveDestroysValue;
+var
+  Key: TTestRecord;
+  Value: TTestObject2;
+begin
+  Key := MakeKey(10, 20);
+  Value := MakeValue(123);
+
+  FDictionary.Add(Key, Value);
+  FDictionary.Remove(Key);
+
+  Assert.AreEqual(0, FDictionary.Count);
+
+  // Value has already been freed by Remove.
+  // Do NOT access Value and do NOT call Value.Free here.
+end;
+
+procedure TObjectDictionaryITest.TestExtractPairTransfersValueOwnership;
+var
+  Key: TTestRecord;
+  Pair: TPair<TTestRecord, TTestObject2>;
+begin
+  Key := MakeKey(10, 20);
+  FDictionary.Add(Key, MakeValue(123));
+
+  Pair := FDictionary.ExtractPair(Key);
+  try
+    Assert.AreEqual(0, FDictionary.Count);
+    Assert.AreEqual(123, Pair.Value.Value);
+  finally
+    // ExtractPair removed it from the dictionary, so free it yourself.
+    Pair.Value.Free;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TDictionaryISTest);
   TDUnitX.RegisterTestFixture(TDictionarySSTest);
@@ -1514,6 +2445,8 @@ initialization
   TDUnitX.RegisterTestFixture(TCustomObjectDictionaryIOTest);
   TDUnitX.RegisterTestFixture(TObjectDictionaryOITest);
   TDUnitX.RegisterTestFixture(TCustomObjectDictionaryOITest);
+  TDUnitX.RegisterTestFixture(TRecordDictionaryITest);
+  TDUnitX.RegisterTestFixture(TObjectDictionaryITest);
 
 end.
 
