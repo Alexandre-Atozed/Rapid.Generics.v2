@@ -30,8 +30,6 @@ uses
   {$ENDIF }
   {$IFDEF UseConsole}
   DUnitX.ConsoleWriter.Base,
-  DUnitX.Loggers.Console,
-  DUnitX.Loggers.XML.NUnit,
   {$ENDIF }
   {$IFDEF UseWinConsole}
   DUnitX.Windows.Console,
@@ -51,7 +49,6 @@ uses
   DUnitX.TestResult,
   DUnitX.TestRunner,
   DUnitX.Utils,
-  DUnitX.IoC,
   DUnitX.MemoryLeakMonitor.Default,
   DUnitX.DUnitCompatibility,
   Rapid.Generics in '..\source\Rapid.Generics.pas',

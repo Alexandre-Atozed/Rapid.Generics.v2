@@ -9,7 +9,7 @@ uses
   Rapid.Generics;
 
 const
-  ITEMS_COUNT = 1000000;
+  ITEMS_COUNT = 1000;
 
 type
   TProc = procedure of object;
@@ -19,6 +19,8 @@ type
   public type
     TItems = array[0..ITEMS_COUNT - 1] of T;
   TRandomFunc = reference to function: T;
+  private
+    procedure RunPerf(const SystemTest, RapidTest: TProc; const IterationsCount: Integer; const MakeCopy: Boolean = True; const LogTime: Boolean = True);
   public
     Items: TItems;
     SourceItems: TItems;
@@ -26,10 +28,10 @@ type
 
     constructor Create(const RandomFunc: TRandomFunc; const AComparison: Generics.Defaults.TComparison<T>);
     destructor Destroy; override;
-    procedure Run(const SystemTest, RapidTest: TProc; const IterationsCount: Integer;
-      const MakeCopy: Boolean = True);
+    function Run(const SystemTest, RapidTest: TProc; const IterationsCount: Integer;
+      const MakeCopy: Boolean = True; const LogTime: Boolean = True): Int64;
 
-    procedure RunEach;
+    procedure RunLoop;
   published
     procedure SystemSortComparison;
     procedure RapidSortComparison;
@@ -64,7 +66,7 @@ begin
       Result := CompareStr(Left, Right);
     end) do
     try
-      RunEach;
+      RunLoop;
     finally
       Free;
     end;
@@ -79,7 +81,7 @@ begin
       Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
     end) do
     try
-      RunEach;
+      RunLoop;
     finally
       Free;
     end;
@@ -94,7 +96,7 @@ begin
       Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
     end) do
     try
-      RunEach;
+      RunLoop;
     finally
       Free;
     end;
@@ -109,7 +111,7 @@ begin
       Result := ShortInt(Byte(Left >= Right) - Byte(Left <= Right));
     end) do
     try
-      RunEach;
+      RunLoop;
     finally
       Free;
     end;
@@ -124,7 +126,7 @@ begin
       Result := ShortInt(Byte(Left >= Right) - Byte(Left <= Right));
     end) do
     try
-      RunEach;
+      RunLoop;
     finally
       Free;
     end;
@@ -139,7 +141,7 @@ begin
       Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
     end) do
     try
-      RunEach;
+      RunLoop;
     finally
       Free;
     end;
@@ -154,7 +156,37 @@ begin
       Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
     end) do
     try
-      RunEach;
+      RunLoop;
+    finally
+      Free;
+    end;
+
+  with TTest<Integer>.Create(
+    function: Integer
+    begin
+      Result := Random(ITEMS_COUNT);
+    end,
+    function(const Left, Right: Integer): Integer
+    begin
+      Result := Shortint(Byte(Left >= Right) - Byte(Left <= Right));
+    end) do
+    try
+      RunLoop;
+    finally
+      Free;
+    end;
+
+  with TTest<string>.Create(
+    function: string
+    begin
+      Result := 'this is a string ' + IntToStr(Random(ITEMS_COUNT));
+    end,
+    function(const Left, Right: string): Integer
+    begin
+      Result := CompareStr(Left, Right);
+    end) do
+    try
+      RunLoop;
     finally
       Free;
     end;
@@ -178,14 +210,15 @@ begin
   inherited;
 end;
 
-procedure TTest<T>.Run(const SystemTest, RapidTest: TProc; const IterationsCount: Integer;
-  const MakeCopy: Boolean);
+function TTest<T>.Run(const SystemTest, RapidTest: TProc; const IterationsCount: Integer;
+  const MakeCopy: Boolean = True; const LogTime: Boolean = True): Int64;
 var
   i: Integer;
   N: Boolean;
   Proc: TProc;
   TotalTime, Time: Cardinal;
 begin
+  Result := 0;
   for N := Low(Boolean) to High(Boolean) do
   begin
     Proc := SystemTest;
@@ -208,8 +241,55 @@ begin
       Inc(TotalTime, Time);
     end;
 
-    Writeln(TotalTime, 'ms');
+    if LogTime then
+      Writeln(TotalTime, 'ms');
+
+    Result := Time;
   end;
+end;
+
+procedure TTest<T>.RunPerf(const SystemTest, RapidTest: TProc; const IterationsCount: Integer;
+  const MakeCopy: Boolean = True; const LogTime: Boolean = True);
+var
+  i: Integer;
+  Proc: TProc;
+  TotalTime, Time: Cardinal;
+begin
+  TotalTime := 0;
+  Proc := SystemTest;
+  Write(Self.MethodName(TMethod(Proc).Code), '... ');
+  for i := 1 to IterationsCount do
+  begin
+    if (MakeCopy) then
+    begin
+      Move(SourceItems, Items, SizeOf(TItems));
+    end;
+
+    Time := GetTickCount;
+    Proc;
+    Time := GetTickCount - Time;
+
+    Inc(TotalTime, Time);
+  end;
+  Writeln(TotalTime, 'ms');
+
+  TotalTime := 0;
+  Proc := RapidTest;
+  Write(Self.MethodName(TMethod(Proc).Code), '... ');
+  for i := 1 to IterationsCount do
+  begin
+    if (MakeCopy) then
+    begin
+      Move(SourceItems, Items, SizeOf(TItems));
+    end;
+
+    Time := GetTickCount;
+    Proc;
+    Time := GetTickCount - Time;
+
+    Inc(TotalTime, Time);
+  end;
+  Writeln(TotalTime, 'ms');
 end;
 
 procedure TTest<T>.SystemSortComparison;
@@ -300,15 +380,14 @@ begin
   end;
 end;
 
-procedure TTest<T>.RunEach;
+procedure TTest<T>.RunLoop;
 begin
   Writeln;
   Writeln(PShortString(NativeUInt(TypeInfo(T)) + 1)^);
 
-  Run(SystemSortComparison, RapidSortComparison, 5);
-  Run(SystemSort, RapidSort, 5);
-  Run(SystemSearchComparison, RapidSearchComparison, 5, False);
-  Run(SystemSearch, RapidSearch, 5, False);
+  TArray.INSERTION_SORT_THRESHOLD := 16;
+
+  RunPerf(SystemSort, RapidSort, 10000, True, False);
 end;
 
 end.

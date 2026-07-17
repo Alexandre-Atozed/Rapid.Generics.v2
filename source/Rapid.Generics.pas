@@ -878,11 +878,25 @@ type
   public
     type
       TMethodPtr = procedure of object;
-      TTriple = packed record
+      // Types for binary comparers
+      TBin1 = packed record
+        B0: Byte;
+      end;
+      TBin2 = packed record
+        B0, B1: Byte;
+      end;
+      TBin3 = packed record
         case Integer of
           0: (Low: Word; High: Byte);
           1: (Bytes: array[0..2] of Byte);
       end;
+      TBin4 = packed record
+        B0, B1, B2, B3: Byte;
+      end;
+      TBin8 = packed record
+        B0, B1, B2, B3, B4, B5, B6, B7: Byte;
+      end;
+
       IComparerInst = packed record
         Vtable: Pointer;
         Size: NativeInt;
@@ -943,7 +957,7 @@ type
     class function Compare_Method(Inst: Pointer; const Left, Right: TMethodPtr): Integer; static;
     class function Compare_Dyn(const Inst: IComparerInst; Left, Right: PByte): Integer; static;
     class function Compare_Bin2(Inst: Pointer; Left, Right: Word): Integer; static;
-    class function Compare_Bin3(Inst: Pointer; const Left, Right: TTriple): Integer; static;
+    class function Compare_Bin3(Inst: Pointer; const Left, Right: TBin3): Integer; static;
     class function Compare_Bin4(Inst: Pointer; Left, Right: Cardinal): Integer; static;
     class function Compare_Bin8(Inst: Pointer; Left, Right: Int64): Integer; static;
     class function Compare_Bin(const Inst: IComparerInst; Left, Right: PByte): Integer; static;
@@ -980,10 +994,19 @@ type
     class function GetHashCode_Method(Inst: Pointer; const Value: TMethodPtr): Integer; static;
     class function Equals_Dyn(const Inst: IEqualityComparerInst; Left, Right: PByte): Boolean; static;
     class function GetHashCode_Dyn(const Inst: IEqualityComparerInst; Value: PByte): Integer; static;
-    class function Equals_Bin3(Inst: Pointer; const Left, Right: TTriple): Boolean; static;
-    class function GetHashCode_Bin3(Inst: Pointer; const Value: TTriple): Integer; static;
     class function Equals_Bin(const Inst: IEqualityComparerInst; Left, Right: PByte): Boolean; static;
     class function GetHashCode_Bin(const Inst: IEqualityComparerInst; Value: PByte): Integer; static;
+    // new comparers/hash code used for non-scalar types
+    class function Equals_Bin1(Inst: Pointer; const Left, Right: TBin1): Boolean; static;
+    class function GetHashCode_Bin1(Inst: Pointer; const Value: TBin1): Integer; static;
+    class function Equals_Bin2(Inst: Pointer; const Left, Right: TBin2): Boolean; static;
+    class function GetHashCode_Bin2(Inst: Pointer; const Value: TBin2): Integer; static;
+    class function Equals_Bin3(Inst: Pointer; const Left, Right: TBin3): Boolean; static;
+    class function GetHashCode_Bin3(Inst: Pointer; const Value: TBin3): Integer; static;
+    class function Equals_Bin4(Inst: Pointer; const Left, Right: TBin4): Boolean; static;
+    class function GetHashCode_Bin4(Inst: Pointer; const Value: TBin4): Integer; static;
+    class function Equals_Bin8(Inst: Pointer; const Left, Right: TBin8): Boolean; static;
+    class function GetHashCode_Bin8(Inst: Pointer; const Value: TBin8): Integer; static;
   end;
 
 { System.Generics.Defaults
@@ -7252,6 +7275,10 @@ begin
       end;
   else
     // binary
+    // This suffers from the same issue that previous version of TDefaultEqualityComparer had:
+    // This can't be used for records, even though it will fallback to this implementation
+    // if no custom comparer is provided in the constructor.
+    // See TDefaultEqualityComparer for more details. (AM 17-Jul-2026)
     case SizeOf(T) of
       1: Instance.Compare := @InterfaceDefaults.Compare_U1;
       2: Instance.Compare := @InterfaceDefaults.Compare_Bin2;
@@ -7360,18 +7387,48 @@ begin
         Instance.Equals := @InterfaceDefaults.Equals_Dyn;
         Instance.GetHashCode := @InterfaceDefaults.GetHashCode_Dyn;
       end;
+    // only genuine scalar types should use the N1, N2, N4, N8 variants
+    tkInteger, tkChar, tkWChar, tkEnumeration, tkSet:
+      case SizeOf(T) of
+        1:
+          begin
+            Instance.Equals := @InterfaceDefaults.Equals_N1;
+            Instance.GetHashCode := @InterfaceDefaults.GetHashCode_N1;
+          end;
+        2:
+          begin
+            Instance.Equals := @InterfaceDefaults.Equals_N2;
+            Instance.GetHashCode := @InterfaceDefaults.GetHashCode_N2;
+          end;
+        4:
+          begin
+            Instance.Equals := @InterfaceDefaults.Equals_N4;
+            Instance.GetHashCode := @InterfaceDefaults.GetHashCode_N4;
+          end;
+        {$IFDEF LARGEINT}
+        8:
+          begin
+            Instance.Equals := @InterfaceDefaults.Equals_N8;
+            Instance.GetHashCode := @InterfaceDefaults.GetHashCode_N8;
+          end;
+        {$ENDIF}
+      else
+        Instance.Equals := @InterfaceDefaults.Equals_Bin;
+        Instance.GetHashCode := @InterfaceDefaults.GetHashCode_Bin;
+      end;
   else
-    // binary
+    // true binary
+    // AM: The new Equals_BinX and GetHashCode_BinX methods are needed for correctly handling records
     case SizeOf(T) of
       1:
         begin
-          Instance.Equals := @InterfaceDefaults.Equals_N1;
-          Instance.GetHashCode := @InterfaceDefaults.GetHashCode_N1;
+          Instance.Equals := @InterfaceDefaults.Equals_Bin1;
+          Instance.GetHashCode := @InterfaceDefaults.GetHashCode_Bin1;
         end;
       2:
         begin
-          Instance.Equals := @InterfaceDefaults.Equals_N2;
-          Instance.GetHashCode := @InterfaceDefaults.GetHashCode_N2;
+          Instance.Equals := @InterfaceDefaults.Equals_Bin2;
+          Instance.GetHashCode := @InterfaceDefaults.GetHashCode_Bin2;
         end;
       3:
         begin
@@ -7380,14 +7437,14 @@ begin
         end;
       4:
         begin
-          Instance.Equals := @InterfaceDefaults.Equals_N4;
-          Instance.GetHashCode := @InterfaceDefaults.GetHashCode_N4;
+          Instance.Equals := @InterfaceDefaults.Equals_Bin4;
+          Instance.GetHashCode := @InterfaceDefaults.GetHashCode_Bin4;
         end;
       {$IFDEF LARGEINT}
       8:
         begin
-          Instance.Equals := @InterfaceDefaults.Equals_N8;
-          Instance.GetHashCode := @InterfaceDefaults.GetHashCode_N8;
+          Instance.Equals := @InterfaceDefaults.Equals_Bin8;
+          Instance.GetHashCode := @InterfaceDefaults.GetHashCode_Bin8;
         end;
       {$ENDIF}
     else
@@ -7590,6 +7647,64 @@ begin
 
   Inc(Result, ((Result shr 8) * 63689) + ((Result shr 16) * -1660269137) +
     ((Result shr 24) * -1092754919));
+end;
+
+class function InterfaceDefaults.Equals_Bin1(Inst: Pointer; const Left, Right: TBin1): Boolean;
+begin
+  Result := PByte(@Left)^ = PByte(@Right)^;
+end;
+
+class function InterfaceDefaults.GetHashCode_Bin1(Inst: Pointer; const Value: TBin1): Integer;
+begin
+  Result := PByte(@Value)^;
+  Inc(Result, Result shr 4 * 63689);
+end;
+
+class function InterfaceDefaults.Equals_Bin2(Inst: Pointer; const Left, Right: TBin2): Boolean;
+begin
+  Result := PWord(@Left)^ = PWord(@Right)^;
+end;
+
+class function InterfaceDefaults.GetHashCode_Bin2(Inst: Pointer; const Value: TBin2): Integer;
+var
+  V: Word;
+begin
+  V := PWord(@Value)^;
+  Result := Byte(V);
+  Inc(Result, Result shr 4 * 63689);
+  Inc(Result, Integer(V shr 8) * -1660269137);
+end;
+
+class function InterfaceDefaults.Equals_Bin4(Inst: Pointer; const Left, Right: TBin4): Boolean;
+begin
+  Result := PInteger(@Left)^ = PInteger(@Right)^;
+end;
+
+class function InterfaceDefaults.GetHashCode_Bin4(Inst: Pointer; const Value: TBin4): Integer;
+var
+  V: Integer;
+begin
+  V := PInteger(@Value)^;
+  Result := V;
+  Result := Result + (V shr 8) * 63689;
+  Result := Result + (V shr 16) * -1660269137;
+  Result := Result + (V shr 24) * -1092754919;
+end;
+
+class function InterfaceDefaults.Equals_Bin8(Inst: Pointer; const Left, Right: TBin8): Boolean;
+begin
+  Result := PInt64(@Left)^ = PInt64(@Right)^;
+end;
+
+class function InterfaceDefaults.GetHashCode_Bin8(Inst: Pointer; const Value: TBin8): Integer;
+var
+  V: Int64;
+begin
+  V := PInt64(@Value)^;
+  Result := Integer(V) + Integer(V shr 32) * 63689;
+  Inc(Result, Result shr 8 * 63689);
+  Result := Result shr 16 * -1660269137;
+  Result := Result shr 24 * -1092754919;
 end;
 
 class function InterfaceDefaults.Equals_Class(Inst: Pointer; Left, Right: TObject): Boolean;
@@ -9963,90 +10078,6 @@ begin
   end;
 end;
 
-//class function InterfaceDefaults.Compare_Bin(const Inst: IComparerInst; Left, Right: PByte): Integer;
-//label
-//  make_result, make_result_swaped;
-//var
-//  X, Y, Count: NativeUInt;
-//begin
-//  Count := Inst.Size;
-//  repeat
-//    if (Count < SizeOf(NativeUInt)) then Break;
-//    X := PNativeUInt(Left)^;
-//    Dec(Count, SizeOf(NativeUInt));
-//    Y := PNativeUInt(Right)^;
-//    Inc(Left, SizeOf(NativeUInt));
-//    Inc(Right, SizeOf(NativeUInt));
-//
-//    if (X <> Y) then
-//    begin
-//      {$IFDEF LARGEINT}
-//        if (Integer(X) = Integer(Y)) then
-//        begin
-//          X := X shr 32;
-//          Y := Y shr 32;
-//        end else
-//        begin
-//          X := Cardinal(X);
-//          Y := Cardinal(Y);
-//        end;
-//      {$ENDIF}
-//
-//      goto make_result;
-//    end;
-//  until (False);
-//
-//  // read last
-//  {$IFDEF LARGEINT}
-//  if (Count >= SizeOf(Cardinal)) then
-//  begin
-//    X := PCardinal(Left)^;
-//    Dec(Count, SizeOf(Cardinal));
-//    Y := PCardinal(Right)^;
-//    Inc(Left, SizeOf(Cardinal));
-//    Inc(Right, SizeOf(Cardinal));
-//
-//    if (X <> Y) then goto make_result;
-//  end;
-//  {$ENDIF}
-//
-//  case Count of
-//    1: begin
-//         X := PByte(Left)^;
-//         Y := PByte(Right)^;
-//         Result := Integer(X) - Integer(Y);
-//         Exit;
-//       end;
-//    2: begin
-//         X := Swap(PWord(Left)^);
-//         Y := Swap(PWord(Right)^);
-//         Result := Integer(X) - Integer(Y);
-//         Exit;
-//       end;
-//    3: begin
-//         X := Swap(PWord(Left)^);
-//         Y := Swap(PWord(Right)^);
-//         Inc(Left, SizeOf(Word));
-//         Inc(Right, SizeOf(Word));
-//         X := (X shl 8) or PByte(Left)^;
-//         Y := (Y shl 8) or PByte(Right)^;
-//         Result := Integer(X) - Integer(Y);
-//         Exit;
-//       end;
-//  else
-//    // 0
-//    Result := 0;
-//    Exit;
-//  end;
-//
-//make_result:
-//  X := (Swap(X) shl 16) + Swap(X shr 16);
-//  Y := (Swap(Y) shl 16) + Swap(Y shr 16);
-//
-//make_result_swaped:
-//  Result := Shortint(Byte(X >= Y) - Byte(X <= Y));
-//end;
-
 class function InterfaceDefaults.Compare_Bin2(Inst: Pointer; Left, Right: Word): Integer;
 var
   L, R: NativeUInt;
@@ -10058,7 +10089,7 @@ begin
   Result := Integer(L) - Integer(R);
 end;
 
-class function InterfaceDefaults.Compare_Bin3(Inst: Pointer; const Left, Right: TTriple): Integer;
+class function InterfaceDefaults.Compare_Bin3(Inst: Pointer; const Left, Right: TBin3): Integer;
 var
   L, R: NativeUInt;
 begin
@@ -10069,12 +10100,12 @@ begin
   Result := Integer(L) - Integer(R);
 end;
 
-class function InterfaceDefaults.Equals_Bin3(Inst: Pointer; const Left, Right: TTriple): Boolean;
+class function InterfaceDefaults.Equals_Bin3(Inst: Pointer; const Left, Right: TBin3): Boolean;
 begin
   Result := ((Integer(Left.High) shl 16) + Left.Low) = ((Integer(Right.High) shl 16) + Right.Low);
 end;
 
-class function InterfaceDefaults.GetHashCode_Bin3(Inst: Pointer; const Value: TTriple): Integer;
+class function InterfaceDefaults.GetHashCode_Bin3(Inst: Pointer; const Value: TBin3): Integer;
 begin
   Result := Integer(Value.Bytes[0]);
   Result := Result + (Result shr 4) * 63689 + Integer(Value.Bytes[1]) * -1660269137 +
