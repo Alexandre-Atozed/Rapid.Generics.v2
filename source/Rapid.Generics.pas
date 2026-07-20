@@ -1690,6 +1690,7 @@ type
     FComparerGetHashCode: function(const Value: TKey): Integer of object;
 
     function InternalFindItem(const Key: TKey; const FindMode: Integer): Pointer {Pitem};
+    function InternalFindItemReadOnly(const Key: TKey): Pointer {PItem};
     function GetItem(const Key: TKey): TValue;
     procedure SetItem(const Key: TKey; const Value: TValue);
   public
@@ -1710,6 +1711,7 @@ type
     function TryGetValue(const Key: TKey; out Value: TValue): Boolean;
     procedure AddOrSetValue(const Key: TKey; const Value: TValue);
     function ContainsKey(const Key: TKey): Boolean;
+    function IsEmpty: Boolean;
 
     property Items[const Key: TKey]: TValue read GetItem write SetItem; default;
     property List;
@@ -2151,6 +2153,70 @@ type
     procedure SetNotifyMethods; override;
   public
     constructor Create(Ownerships: TDictionaryOwnerships; ACapacity: Integer = 0);
+  end;
+
+  THashSet<T> = class(TEnumerable<T>)
+  private
+    FDict: TDictionary<T, TNothing>;
+    FOnNotify: TCollectionNotifyEvent<T>;
+    function GetCapacity: NativeInt; inline;
+    function GetCount: NativeInt; inline;
+    function GetIsEmpty: Boolean; inline;
+    procedure InternalNotify(Sender: TObject; const Item: T;
+      Action: TCollectionNotification);
+    procedure UpdateNotify;
+    procedure SetOnNotify(const Value: TCollectionNotifyEvent<T>);
+  protected
+    type
+      TSetEnumerator = class(TEnumerator<T>)
+      private
+        FItems: TDictionary<T, TNothing>.PItemList;
+        FIndex: NativeInt;
+        FCount: NativeInt;
+      protected
+        function DoGetCurrent: T; override;
+        function DoMoveNext: Boolean; override;
+      public
+        constructor Create(ADict: TDictionary<T, TNothing>);
+      end;
+    procedure Notify(const Item: T; Action: TCollectionNotification); virtual;
+    function DoGetEnumerator: TEnumerator<T>; override;
+  public
+    constructor Create; overload;
+    constructor Create(ACapacity: NativeInt); overload;
+    constructor Create(const AComparer: IEqualityComparer<T>); overload;
+    constructor Create(ACapacity: NativeInt; const AComparer: IEqualityComparer<T>); overload;
+    constructor Create(const Collection: TEnumerable<T>); overload;
+    constructor Create(const Collection: TEnumerable<T>; const AComparer: IEqualityComparer<T>); overload;
+    constructor Create(const AItems: array of T); overload;
+    constructor Create(const AItems: array of T; const AComparer: IEqualityComparer<T>); overload;
+    destructor Destroy; override;
+
+    function Add(const Value: T): Boolean; inline;
+    function Remove(const Value: T): Boolean;
+    function GetOrAdd(const Value: T): T;
+    procedure Clear; inline;
+    procedure TrimExcess; inline;
+    function Contains(const Value: T): Boolean; inline;
+    function ToArray: TArray<T>; override; final;
+
+    function AddRange(const Values: array of T): Boolean; overload;
+    function AddRange(const Collection: IEnumerable<T>): Boolean; overload;
+    function AddRange(const Collection: TEnumerable<T>): Boolean; overload;
+
+    procedure ExceptWith(const AOther: TEnumerable<T>);
+    procedure SymmetricExceptWith(const AOther: TEnumerable<T>);
+    procedure IntersectWith(const AOther: TEnumerable<T>);
+    procedure UnionWith(const AOther: TEnumerable<T>);
+    function Overlaps(const AOther: TEnumerable<T>): Boolean;
+    function SetEquals(const AOther: TEnumerable<T>): Boolean;
+    function IsSubsetOf(const AOther: TEnumerable<T>): Boolean;
+    function IsSupersetOf(const AOther: TEnumerable<T>): Boolean;
+
+    property Capacity: NativeInt read GetCapacity;
+    property Count: NativeInt read GetCount;
+    property IsEmpty: Boolean read GetIsEmpty;
+    property OnNotify: TCollectionNotifyEvent<T> read FOnNotify write SetOnNotify;
   end;
 
   // Declared externally so Delphi watches work
@@ -18057,6 +18123,23 @@ begin
   Result := Item;
 end;
 
+function TDictionary<TKey, TValue>.InternalFindItemReadOnly(const Key: TKey): Pointer {PItem};
+var
+  Item: TCustomDictionary<TKey, TValue>.PItem;
+  HashCode: Integer;
+begin
+  HashCode := Self.FComparerGetHashCode(Key);
+
+  Pointer(Item) := @FHashTable[NativeInt(Cardinal(HashCode)) and FHashTableMask];
+  Dec(NativeUInt(Item), SizeOf(TKey) + SizeOf(TValue));
+
+  repeat
+    Item := Item.FNext;
+  until (Item = nil) or ((HashCode = Item.HashCode) and Self.FComparerEquals(Key, Item.Key));
+
+  Result := Item;
+end;
+
 function TDictionary<TKey, TValue>.GetItem(const Key: TKey): TValue;
 begin
   Result := TCustomDictionary<TKey, TValue>.PItem(Self.InternalFindItem(Key, FOUND_NONE + EMPTY_EXCEPTION)).Value;
@@ -18070,7 +18153,7 @@ end;
 
 function TDictionary<TKey, TValue>.Find(const Key: TKey): Pointer {PItem};
 begin
-  Result := Self.InternalFindItem(Key, FOUND_NONE + EMPTY_NONE);
+  Result := InternalFindItemReadOnly(Key);
 end;
 
 function TDictionary<TKey, TValue>.FindOrAdd(const Key: TKey): Pointer {PItem};
@@ -18085,12 +18168,37 @@ begin
   Self.InternalFindItem(Key, FOUND_EXCEPTION + EMPTY_NEW);
 end;
 
+// Part of InternalFindItem() logic is duplicated here to avoid double hash/index calculations
 function TDictionary<TKey, TValue>.TryAdd(const Key: TKey; const Value: TValue): Boolean;
+var
+  Item, Parent: Pointer;
+  HashCode: Integer;
 begin
-  if ContainsKey(Key) then
-    Exit(False);
+  HashCode := Self.FComparerGetHashCode(Key);
 
-  Add(Key, Value);
+  Parent := @FHashTable[NativeInt(Cardinal(HashCode)) and FHashTableMask];
+  Item := Pointer(Parent^);
+
+  while (Item <> nil) do
+  begin
+    if (HashCode = PItem(Item).FHashCode) and Self.FComparerEquals(Key, PItem(Item).Key) then
+      Exit(False);
+    Item := PItem(Item).FNext;
+  end;
+
+  // NewItem may trigger Grow/Rehash, which reallocates FHashTable.
+  Item := Self.NewItem;
+  Parent := @FHashTable[NativeInt(Cardinal(HashCode)) and FHashTableMask];
+
+  PItem(Item).FKey := Key;
+  PItem(Item).FValue := Value;
+  PItem(Item).FHashCode := HashCode;
+  PItem(Item).FNext := Pointer(Parent^);
+  Pointer(Parent^) := Item;
+
+  if Assigned(Self.FInternalItemNotify) then
+    Self.FInternalItemNotify(PItem(Item)^, cnAdded);
+
   Result := True;
 end;
 
@@ -18163,7 +18271,12 @@ end;
 
 function TDictionary<TKey, TValue>.ContainsKey(const Key: TKey): Boolean;
 begin
-  Result := (Self.InternalFindItem(Key, FOUND_NONE + EMPTY_NONE) <> nil);
+  Result := InternalFindItemReadOnly(Key) <> nil;
+end;
+
+function TDictionary<TKey, TValue>.IsEmpty: Boolean;
+begin
+  Result := Count = 0;
 end;
 
 { TRapidDictionary<TKey,TValue> }
@@ -24693,6 +24806,419 @@ begin
       TMethod(FInternalItemNotify).Code := @TRapidObjectDictionary<TKey, TValue>.DisposeItemNotifyValueOnly;
     end;
   end;
+end;
+
+{ THashSet }
+
+constructor THashSet<T>.Create;
+begin
+  Create(0, nil);
+end;
+
+constructor THashSet<T>.Create(ACapacity: NativeInt);
+begin
+  Create(ACapacity, nil);
+end;
+
+constructor THashSet<T>.Create(const AComparer: IEqualityComparer<T>);
+begin
+  Create(0, AComparer);
+end;
+
+constructor THashSet<T>.Create(ACapacity: NativeInt; const AComparer: IEqualityComparer<T>);
+begin
+  inherited Create;
+  FDict := TDictionary<T, TNothing>.Create(ACapacity, AComparer);
+  UpdateNotify;
+end;
+
+constructor THashSet<T>.Create(const Collection: TEnumerable<T>);
+begin
+  Create(0, nil);
+  AddRange(Collection);
+end;
+
+constructor THashSet<T>.Create(const Collection: TEnumerable<T>; const AComparer: IEqualityComparer<T>);
+begin
+  Create(0, AComparer);
+  AddRange(Collection);
+end;
+
+constructor THashSet<T>.Create(const AItems: array of T);
+begin
+  Create(Length(AItems), nil);
+  AddRange(AItems);
+end;
+
+constructor THashSet<T>.Create(const AItems: array of T; const AComparer: IEqualityComparer<T>);
+begin
+  Create(Length(AItems), AComparer);
+  AddRange(AItems);
+end;
+
+destructor THashSet<T>.Destroy;
+begin
+  FDict.Free;
+  inherited;
+end;
+
+function THashSet<T>.Add(const Value: T): Boolean;
+begin
+  Result := FDict.TryAdd(Value, Default(TNothing));
+end;
+
+function THashSet<T>.Remove(const Value: T): Boolean;
+begin
+  Result := FDict.ContainsKey(Value);
+  if Result then
+    FDict.Remove(Value);
+end;
+
+function THashSet<T>.GetOrAdd(const Value: T): T;
+begin
+  if not FDict.ContainsKey(Value) then
+    FDict.Add(Value, Default(TNothing));
+
+  Result := Value;
+end;
+
+procedure THashSet<T>.Clear;
+begin
+  FDict.Clear;
+end;
+
+procedure THashSet<T>.TrimExcess;
+begin
+  FDict.TrimExcess;
+end;
+
+function THashSet<T>.Contains(const Value: T): Boolean;
+begin
+  Result := FDict.ContainsKey(Value);
+end;
+
+function THashSet<T>.ToArray: TArray<T>;
+begin
+  Result := FDict.Keys.ToArray;
+end;
+
+function THashSet<T>.AddRange(const Values: array of T): Boolean;
+var
+  v: T;
+begin
+  Result := False;
+  for v in Values do
+    Result := Add(v) or Result;
+end;
+
+function THashSet<T>.AddRange(const Collection: IEnumerable<T>): Boolean;
+var
+  v: T;
+begin
+  Result := False;
+  for v in Collection do
+    Result := Add(v) or Result;
+end;
+
+function THashSet<T>.AddRange(const Collection: TEnumerable<T>): Boolean;
+var
+  v: T;
+begin
+  Result := False;
+  for v in Collection do
+    Result := Add(v) or Result;
+end;
+
+procedure THashSet<T>.ExceptWith(const AOther: TEnumerable<T>);
+var
+  e: TEnumerator<T>;
+begin
+  if AOther = nil then
+    raise EArgumentException.CreateRes(Pointer(@SArgumentNil));
+  if Count = 0 then
+    Exit;
+  if Self = AOther then
+  begin
+    Clear;
+    Exit;
+  end;
+  e := AOther.GetEnumerator;
+  try
+    while e.MoveNext do
+      Remove(e.Current);
+    TrimExcess;
+  finally
+    e.Free;
+  end;
+end;
+
+procedure THashSet<T>.SymmetricExceptWith(const AOther: TEnumerable<T>);
+var
+  e: TEnumerator<T>;
+  Item: T;
+begin
+  if AOther = nil then
+    raise EArgumentException.CreateRes(Pointer(@SArgumentNil));
+
+  if Self = AOther then
+  begin
+    Clear;
+    Exit;
+  end;
+
+  e := AOther.GetEnumerator;
+  try
+    while e.MoveNext do
+    begin
+      Item := e.Current;
+
+      if not Remove(Item) then
+        Add(Item);
+    end;
+  finally
+    e.Free;
+  end;
+end;
+
+procedure THashSet<T>.IntersectWith(const AOther: TEnumerable<T>);
+var
+  e: TEnumerator<T>;
+  i: NativeInt;
+  flags: TArray<Boolean>;
+  item: T;
+  found: TCustomDictionary<T, TNothing>.PItem;
+begin
+  if AOther = nil then
+    raise EArgumentException.CreateRes(Pointer(@SArgumentNil));
+  if (Count = 0) or (Self = AOther) then
+    Exit;
+
+  e := AOther.GetEnumerator;
+  try
+    if not e.MoveNext then
+    begin
+      Clear;
+      Exit;
+    end;
+
+    SetLength(flags, FDict.FCount.Native);   // one flag per live item, not per bucket
+    repeat
+      found := FDict.Find(e.Current);
+      if found <> nil then
+        flags[(NativeUInt(found) - NativeUInt(FDict.FItems)) div NativeUInt(SizeOf(FDict.FItems[0]))] := True;
+    until not e.MoveNext;
+
+    // iterate backwards so DisposeItem's "swap last into removed slot" doesn't skip items
+    for i := FDict.FCount.Native - 1 downto 0 do
+      if not flags[i] then
+      begin
+        item := FDict.FItems[i].Key;
+        FDict.Remove(item);   // uses the dictionary's own consistent removal path
+      end;
+
+    TrimExcess;
+  finally
+    e.Free;
+  end;
+end;
+
+procedure THashSet<T>.UnionWith(const AOther: TEnumerable<T>);
+var
+  e: TEnumerator<T>;
+begin
+  if AOther = nil then
+    raise EArgumentException.CreateRes(Pointer(@SArgumentNil));
+  if Self = AOther then
+    Exit;
+
+  e := AOther.GetEnumerator;
+  try
+    while e.MoveNext do
+      Add(e.Current);
+  finally
+    e.Free;
+  end;
+end;
+
+function THashSet<T>.Overlaps(const AOther: TEnumerable<T>): Boolean;
+var
+  e: TEnumerator<T>;
+begin
+  if AOther = nil then
+    raise EArgumentException.CreateRes(Pointer(@SArgumentNil));
+  if Count = 0 then
+    Exit(False);
+  if Self = AOther then
+    Exit(True);
+  e := AOther.GetEnumerator;
+  try
+    while e.MoveNext do
+      if Contains(e.Current) then
+        Exit(True);
+  finally
+    e.Free;
+  end;
+  Result := False;
+end;
+
+function THashSet<T>.SetEquals(const AOther: TEnumerable<T>): Boolean;
+var
+  e: TEnumerator<T>;
+  i: NativeInt;
+  flags: TArray<Boolean>;
+  found: TCustomDictionary<T, TNothing>.PItem;
+begin
+  if AOther = nil then
+    raise EArgumentException.CreateRes(Pointer(@SArgumentNil));
+  if Self = AOther then
+    Exit(True);
+
+  e := AOther.GetEnumerator;
+  try
+    SetLength(flags, FDict.FCount.Native);
+    while e.MoveNext do
+    begin
+      found := FDict.Find(e.Current);
+      if found = nil then
+        Exit(False);
+      flags[NativeInt(NativeUInt(found) - NativeUInt(FDict.FItems)) div SizeOf(FDict.FItems[0])] := True;
+    end;
+    for i := 0 to FDict.FCount.Native - 1 do
+      if not flags[i] then
+        Exit(False);
+  finally
+    e.Free;
+  end;
+  Result := True;
+end;
+
+function THashSet<T>.IsSubsetOf(const AOther: TEnumerable<T>): Boolean;
+var
+  e: TEnumerator<T>;
+  i: NativeInt;
+  flags: TArray<Boolean>;
+  found: TCustomDictionary<T, TNothing>.PItem;
+begin
+  if AOther = nil then
+    raise EArgumentException.CreateRes(Pointer(@SArgumentNil));
+  if Self = AOther then
+    Exit(True);
+  if Count = 0 then
+    Exit(True);  // empty set is a subset of anything — valid short-circuit here
+
+  e := AOther.GetEnumerator;
+  try
+    SetLength(flags, FDict.FCount.Native);
+    while e.MoveNext do
+    begin
+      found := FDict.Find(e.Current);
+      if found <> nil then
+        flags[NativeInt(NativeUInt(found) - NativeUInt(FDict.FItems)) div SizeOf(FDict.FItems[0])] := True;
+    end;
+    for i := 0 to FDict.FCount.Native - 1 do
+      if not flags[i] then
+        Exit(False);
+  finally
+    e.Free;
+  end;
+  Result := True;
+end;
+
+function THashSet<T>.IsSupersetOf(const AOther: TEnumerable<T>): Boolean;
+var
+  e: TEnumerator<T>;
+begin
+  if AOther = nil then
+    raise EArgumentException.CreateRes(Pointer(@SArgumentNil));
+  if Self = AOther then
+    Exit(True);
+  e := AOther.GetEnumerator;
+  try
+    while e.MoveNext do
+      if not Contains(e.Current) then
+        Exit(False);
+  finally
+    e.Free;
+  end;
+  Result := True;
+end;
+
+procedure THashSet<T>.Notify(const Item: T; Action: TCollectionNotification);
+begin
+  if Assigned(FOnNotify) then
+    FOnNotify(Self, Item, Action);
+end;
+
+function THashSet<T>.GetCount: NativeInt;
+begin
+  Result := FDict.Count;
+end;
+
+function THashSet<T>.GetCapacity: NativeInt;
+begin
+  Result := FDict.FCapacity;
+end;
+
+function THashSet<T>.GetIsEmpty: Boolean;
+begin
+  Result := FDict.IsEmpty;
+end;
+
+procedure THashSet<T>.InternalNotify(Sender: TObject; const Item: T;
+  Action: TCollectionNotification);
+begin
+  Notify(Item, Action);
+end;
+
+procedure THashSet<T>.UpdateNotify;
+type
+  TEvent = procedure (const Item: T; Action: TCollectionNotification) of object;
+var
+  LAssign: Boolean;
+  LEvent: TEvent;
+begin
+  LAssign := Assigned(OnNotify);
+  if not LAssign then
+  begin
+    LEvent := Notify;
+    LAssign := TMethod(LEvent).Code <> @TList<T>.Notify;
+  end;
+  if LAssign then
+    FDict.OnKeyNotify := InternalNotify
+  else
+    FDict.OnKeyNotify := nil;
+end;
+
+procedure THashSet<T>.SetOnNotify(const Value: TCollectionNotifyEvent<T>);
+begin
+  FOnNotify := Value;
+  UpdateNotify;
+end;
+
+{ THashSet<T>.TSetEnumerator }
+
+constructor THashSet<T>.TSetEnumerator.Create(ADict: TDictionary<T, TNothing>);
+begin
+  inherited Create;
+  FItems := ADict.List;
+  FCount := ADict.Count;
+  FIndex := -1;
+end;
+
+function THashSet<T>.TSetEnumerator.DoMoveNext: Boolean;
+begin
+  Inc(FIndex);
+  Result := FIndex < FCount;
+end;
+
+function THashSet<T>.TSetEnumerator.DoGetCurrent: T;
+begin
+  Result := FItems[FIndex].Key;
+end;
+
+function THashSet<T>.DoGetEnumerator: TEnumerator<T>;
+begin
+  Result := TSetEnumerator.Create(FDict);
 end;
 
 initialization

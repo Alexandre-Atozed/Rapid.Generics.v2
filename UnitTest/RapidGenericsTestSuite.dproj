@@ -136,6 +136,7 @@
         <DCCReference Include="uTestTypes.pas"/>
         <DCCReference Include="uListRecTest.pas"/>
         <DCCReference Include="uArrayTest.pas"/>
+        <DCCReference Include="uHashSetTest.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
