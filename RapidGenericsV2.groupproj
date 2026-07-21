@@ -15,6 +15,9 @@
         <Projects Include="PerformanceTest\Sortings.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="PerformanceTest\HashSets.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -59,14 +62,23 @@
     <Target Name="Sortings:Make">
         <MSBuild Projects="PerformanceTest\Sortings.dproj" Targets="Make"/>
     </Target>
+    <Target Name="HashSets">
+        <MSBuild Projects="PerformanceTest\HashSets.dproj"/>
+    </Target>
+    <Target Name="HashSets:Clean">
+        <MSBuild Projects="PerformanceTest\HashSets.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="HashSets:Make">
+        <MSBuild Projects="PerformanceTest\HashSets.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="RapidGenericsTestSuite;Containers;Dictionaries;Sortings"/>
+        <CallTarget Targets="RapidGenericsTestSuite;Containers;Dictionaries;Sortings;HashSets"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="RapidGenericsTestSuite:Clean;Containers:Clean;Dictionaries:Clean;Sortings:Clean"/>
+        <CallTarget Targets="RapidGenericsTestSuite:Clean;Containers:Clean;Dictionaries:Clean;Sortings:Clean;HashSets:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="RapidGenericsTestSuite:Make;Containers:Make;Dictionaries:Make;Sortings:Make"/>
+        <CallTarget Targets="RapidGenericsTestSuite:Make;Containers:Make;Dictionaries:Make;Sortings:Make;HashSets:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
