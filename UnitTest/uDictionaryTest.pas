@@ -535,6 +535,65 @@ type
     procedure TestExtractPair;
   end;
 
+  TSomeKind = (
+    kind1,  kind2,  kind3,  kind4,  kind5,  kind6,
+    kind7,  kind8,  kind9,  kind10, kind11,
+    kind12, kind13, kind14, kind15, kind16, kind17,
+    kind18, kind19, kind20, kind21, kind22,
+    kind23, kind24, kind25, kind26, kind27,
+    kind28, kind29, kind30, kind31
+  );
+
+  TDictionarySetTest = class
+  private
+    FDictionary: TDictionary<Pointer, TSomeKind>;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+    [Test]
+    procedure TestRecordSize;
+    [Test]
+    procedure TestFind;
+    [Test]
+    procedure TestTryGetValue;
+    [Test]
+    procedure TestContainsKey;
+    [Test]
+    procedure TestRemove;
+    [Test]
+    procedure TestDuplicateKey;
+    [Test]
+    procedure TestDifferentRecordsSameFirstField;
+    [Test]
+    procedure TestDifferentRecordsSameSecondField;
+    [Test]
+    procedure TestZeroValues;
+    [Test]
+    procedure TestMinMaxValues;
+    [Test]
+    procedure TestMany;
+    [Test]
+    procedure TestOverwriteValue;
+    [Test]
+    procedure TestExtractPair;
+  end;
+
+  TDictionaryClassTest = class
+  private
+    FDictionary: TDictionary<TClass, Integer>;
+  public
+    [Setup]
+    procedure Setup;
+    [TearDown]
+    procedure TearDown;
+    [Test]
+    procedure TestAdd;
+  end;
+
 implementation
 
 uses
@@ -3221,6 +3280,187 @@ begin
   end;
 end;
 
+{ TDictionarySetTest }
+
+procedure TDictionarySetTest.Setup;
+begin
+  FDictionary := TDictionary<Pointer, TSomeKind>.Create;
+end;
+
+procedure TDictionarySetTest.TearDown;
+begin
+  FreeAndNil(FDictionary);
+end;
+
+procedure TDictionarySetTest.TestAdd;
+const
+  Count = 100000;
+var
+  I: Integer;
+begin
+  for I := 1 to Count do
+    FDictionary.Add(Pointer(NativeInt(I)), TSomeKind(I mod 31));
+
+  Assert.AreEqual(Count, FDictionary.Count);
+end;
+
+procedure TDictionarySetTest.TestRecordSize;
+begin
+  Writeln(Format('SizeOf(TPair<Pointer,TSomeKind>) = %d',
+    [SizeOf(TPair<Pointer, TSomeKind>)]));
+end;
+
+procedure TDictionarySetTest.TestFind;
+var
+  Value: TSomeKind;
+begin
+  FDictionary.Add(Pointer(1), kind10);
+
+  Value := FDictionary.Items[Pointer(1)];
+
+  Assert.AreEqual(kind10, Value);
+end;
+
+procedure TDictionarySetTest.TestTryGetValue;
+var
+  Value: TSomeKind;
+begin
+  FDictionary.Add(Pointer(1), kind20);
+
+  Assert.IsTrue(FDictionary.TryGetValue(Pointer(1), Value));
+  Assert.AreEqual(kind20, Value);
+
+  Assert.IsFalse(FDictionary.TryGetValue(Pointer(2), Value));
+end;
+
+procedure TDictionarySetTest.TestContainsKey;
+begin
+  FDictionary.Add(Pointer(1), kind1);
+
+  Assert.IsTrue(FDictionary.ContainsKey(Pointer(1)));
+  Assert.IsFalse(FDictionary.ContainsKey(Pointer(2)));
+end;
+
+procedure TDictionarySetTest.TestRemove;
+begin
+  FDictionary.Add(Pointer(1), kind1);
+
+  Assert.IsTrue(FDictionary.ContainsKey(Pointer(1)));
+
+  FDictionary.Remove(Pointer(1));
+
+  Assert.IsFalse(FDictionary.ContainsKey(Pointer(1)));
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+procedure TDictionarySetTest.TestDuplicateKey;
+begin
+  FDictionary.Add(Pointer(1), kind1);
+
+  Assert.WillRaise(
+    procedure
+    begin
+      FDictionary.Add(Pointer(1), kind2);
+    end,
+    EListError);
+end;
+
+procedure TDictionarySetTest.TestDifferentRecordsSameFirstField;
+begin
+  FDictionary.Add(Pointer(1), kind1);
+  FDictionary.Add(Pointer(2), kind1);
+
+  Assert.AreEqual(2, FDictionary.Count);
+  Assert.AreEqual(kind1, FDictionary[Pointer(1)]);
+  Assert.AreEqual(kind1, FDictionary[Pointer(2)]);
+end;
+
+procedure TDictionarySetTest.TestDifferentRecordsSameSecondField;
+begin
+  FDictionary.Add(Pointer(1), kind5);
+  FDictionary.Add(Pointer(1), kind5);
+end;
+
+procedure TDictionarySetTest.TestZeroValues;
+begin
+  FDictionary.Add(nil, kind1);
+
+  Assert.IsTrue(FDictionary.ContainsKey(nil));
+  Assert.AreEqual(kind1, FDictionary[nil]);
+end;
+
+procedure TDictionarySetTest.TestMinMaxValues;
+begin
+  FDictionary.Add(Pointer(1), Low(TSomeKind));
+  FDictionary.Add(Pointer(2), High(TSomeKind));
+
+  Assert.AreEqual(Low(TSomeKind), FDictionary[Pointer(1)]);
+  Assert.AreEqual(High(TSomeKind), FDictionary[Pointer(2)]);
+end;
+
+procedure TDictionarySetTest.TestMany;
+const
+  Count = 100000;
+var
+  I: Integer;
+  Value: TSomeKind;
+begin
+  for I := 1 to Count do
+    FDictionary.Add(Pointer(NativeInt(I)), TSomeKind(I mod 31));
+
+  Assert.AreEqual(Count, FDictionary.Count);
+
+  for I := 1 to Count do
+  begin
+    Assert.IsTrue(FDictionary.TryGetValue(Pointer(NativeInt(I)), Value));
+    Assert.AreEqual(TSomeKind(I mod 31), Value);
+  end;
+end;
+
+procedure TDictionarySetTest.TestOverwriteValue;
+begin
+  FDictionary.Add(Pointer(1), kind1);
+
+  FDictionary[Pointer(1)] := kind31;
+
+  Assert.AreEqual(kind31, FDictionary[Pointer(1)]);
+end;
+
+procedure TDictionarySetTest.TestExtractPair;
+var
+  Pair: TPair<Pointer, TSomeKind>;
+begin
+  FDictionary.Add(Pointer(1), kind7);
+
+  Pair := FDictionary.ExtractPair(Pointer(1));
+
+  Assert.AreEqual(Pointer(1), Pair.Key);
+  Assert.AreEqual(kind7, Pair.Value);
+
+  Assert.IsFalse(FDictionary.ContainsKey(Pointer(1)));
+  Assert.AreEqual(0, FDictionary.Count);
+end;
+
+{ TDictionaryClassTest }
+
+procedure TDictionaryClassTest.Setup;
+begin
+  FDictionary := TDictionary<TClass, Integer>.Create;
+end;
+
+procedure TDictionaryClassTest.TearDown;
+begin
+  FreeAndNil(FDictionary);
+end;
+
+procedure TDictionaryClassTest.TestAdd;
+begin
+  FDictionary.Add(TObject, 1);
+  FDictionary.Add(TPersistent, 2);
+
+  Assert.AreEqual(2, FDictionary.Count);
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TDictionaryISTest);
   TDUnitX.RegisterTestFixture(TDictionarySSTest);
@@ -3236,6 +3476,8 @@ initialization
   TDUnitX.RegisterTestFixture(TObjectDictionaryITest);
   TDUnitX.RegisterTestFixture(TObjectDictionary4ByteITest);
   TDUnitX.RegisterTestFixture(TObjectDictionary2ByteITest);
+  TDUnitX.RegisterTestFixture(TDictionarySetTest);
+  TDUnitX.RegisterTestFixture(TDictionaryClassTest);
 
 end.
 

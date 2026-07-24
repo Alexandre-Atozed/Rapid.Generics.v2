@@ -59,7 +59,8 @@ uses
   uTestTypes in 'uTestTypes.pas',
   uListRecTest in 'uListRecTest.pas',
   uArrayTest in 'uArrayTest.pas',
-  uHashSetTest in 'uHashSetTest.pas';
+  uHashSetTest in 'uHashSetTest.pas',
+  uQueueWrapGrowTest in 'uQueueWrapGrowTest.pas';
 
 {$R *.res}
 

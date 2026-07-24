@@ -19322,7 +19322,7 @@ begin
     begin
       FillChar(Pointer(WeakItems)^, FCount.Native * SizeOf(T), #0);
 
-      if (FTail <= FHead) then
+      if (FTail < FHead) then
       begin
         System.CopyArray(@WeakItems[0], @FItems[FTail], TypeInfo(T), FCount.Native);
         System.FinalizeArray(@FItems[FTail], TypeInfo(T), FCount.Native);
@@ -19355,7 +19355,7 @@ begin
         FillChar(FItems[OldCapacity], (Value - OldCapacity) * SizeOf(T), 0);
     end
   else
-  if (FTail <= FHead) then
+  if (FTail < FHead) then
     begin
       if (FTail <> 0) then
       begin
@@ -19379,11 +19379,11 @@ begin
       if (Dif > 0) then
       begin
         ReallocMem(FItems, Value * SizeOf(T));
-        System.Move(FItems[FTail], FItems[NewTail], (OldCapacity - FTail) * SizeOf(T));
         FillChar(FItems[OldCapacity], (Value - OldCapacity) * SizeOf(T), 0);
+        System.Move(FItems[FTail], FItems[NewTail], (OldCapacity - FTail) * SizeOf(T));
       end
       else
-    //if (Dif < 0) then
+      if (Dif < 0) then
       begin
         System.Move(FItems[FTail], FItems[NewTail], (OldCapacity - FTail) * SizeOf(T));
         ReallocMem(FItems, Value * SizeOf(T));
