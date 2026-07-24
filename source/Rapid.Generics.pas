@@ -19322,7 +19322,7 @@ begin
     begin
       FillChar(Pointer(WeakItems)^, FCount.Native * SizeOf(T), #0);
 
-      if (FTail < FHead) then
+      if (FTail < FHead) or (FTail = 0) then
       begin
         System.CopyArray(@WeakItems[0], @FItems[FTail], TypeInfo(T), FCount.Native);
         System.FinalizeArray(@FItems[FTail], TypeInfo(T), FCount.Native);
@@ -19355,7 +19355,7 @@ begin
         FillChar(FItems[OldCapacity], (Value - OldCapacity) * SizeOf(T), 0);
     end
   else
-  if (FTail < FHead) then
+  if (FTail < FHead) or (FTail = 0) then
     begin
       if (FTail <> 0) then
       begin
