@@ -16,7 +16,7 @@ The original library could not be used in a real application due to several issu
 ## What is different in v2?
 
 ### ✅ Unit Tests
-* 600+ new unit tests added for `TArray<>`, `TDictionary<>`, `TObjectDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, `TObjectQueue<>`, `TStack<>`, `TObjectStack<>` and `THashSet<>` classes
+* 700+ new unit tests added for `TArray<>`, `TDictionary<>`, `TObjectDictionary<>`, `TList<>`, `TObjectList<>`, `TQueue<>`, `TObjectQueue<>`, `TStack<>`, `TObjectStack<>` and `THashSet<>` classes
 * All tests run memory leak free. Tested with FastMM4 in FullDebugMode
 * Most tests can also use standard System.Generics.Collections data structures, just disabling a directive (undefine TEST_RAPIDGENERICS), making it easy to compare unexpected behavior (except SortDescending methods which have no counterpart in System.Generics.Collections)   
 * New tests added to the performance test (benchmark) application  
