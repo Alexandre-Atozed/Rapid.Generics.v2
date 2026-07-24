@@ -555,8 +555,6 @@ type
     [Test]
     procedure TestAdd;
     [Test]
-    procedure TestRecordSize;
-    [Test]
     procedure TestFind;
     [Test]
     procedure TestTryGetValue;
@@ -3304,12 +3302,6 @@ begin
   Assert.AreEqual(Count, FDictionary.Count);
 end;
 
-procedure TDictionarySetTest.TestRecordSize;
-begin
-  Writeln(Format('SizeOf(TPair<Pointer,TSomeKind>) = %d',
-    [SizeOf(TPair<Pointer, TSomeKind>)]));
-end;
-
 procedure TDictionarySetTest.TestFind;
 var
   Value: TSomeKind;
@@ -3378,7 +3370,12 @@ end;
 procedure TDictionarySetTest.TestDifferentRecordsSameSecondField;
 begin
   FDictionary.Add(Pointer(1), kind5);
-  FDictionary.Add(Pointer(1), kind5);
+  Assert.WillRaise(procedure
+                   begin
+                     FDictionary.Add(Pointer(1), kind5);
+                   end,
+                   EListError
+                  );
 end;
 
 procedure TDictionarySetTest.TestZeroValues;

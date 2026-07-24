@@ -12,7 +12,7 @@ uses
 
 begin
   try
-    Run;
+    uDictionaries.Run;
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

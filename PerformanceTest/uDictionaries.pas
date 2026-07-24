@@ -409,15 +409,31 @@ begin
   Instance.Free;
 end;
 
+// I'm avoiding SystemRapid and RapidDictionary tests here because they confuse most users that run it the first time
+// without knowing the internals of Rapid.Generics.
+// Enable the define below to run them all
+{.$DEFINE RUN_ALL_TESTS}
+
 procedure TRunner<T>.RunEach;
 begin
   Writeln;
   Writeln(PShortString(NativeUInt(TypeInfo(T)) + 1)^);
 
   Run(SystemSystem);
+  Writeln;
+
+  {$IFDEF RUN_ALL_TESTS}
   Run(SystemRapid);
+  Writeln;
+  {$ENDIF}
+
   Run(RapidRapid);
+  Writeln;
+
+  {$IFDEF RUN_ALL_TESTS}
   Run(RapidDictionary);
+  Writeln;
+  {$ENDIF}
 end;
 
 end.
