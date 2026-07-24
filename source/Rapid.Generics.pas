@@ -876,6 +876,10 @@ type
 
   InterfaceDefaults = record
   public
+    const
+      INIT_UNINITIALIZED = 0;
+      INIT_INITIALIZING  = 1;
+      INIT_INITIALIZED   = 2;
     type
       TMethodPtr = procedure of object;
       // Types for binary comparers
@@ -915,18 +919,28 @@ type
           GetHashCode: Pointer;
       end;
       TDefaultComparer<T> = record
+      strict private
+        class var
+          FInitState: Integer;  // see Const section above
       public
         class var
           Instance: IComparerInst;
       private
         class constructor ClassCreate;
+        class procedure InitInstance; static;
+        class procedure EnsureInitialized; static;
       end;
       TDefaultEqualityComparer<T> = record
+      strict private
+        class var
+          FInitState: Integer;  // see Const section above
       public
         class var
           Instance: IEqualityComparerInst;
       private
         class constructor ClassCreate;
+        class procedure InitInstance; static;
+        class procedure EnsureInitialized; static;
       end;
   private
     class function Compare_Var_Difficult(Equal: Boolean; Left, Right: PVariant): Integer; static;
@@ -7257,6 +7271,11 @@ end;
 { InterfaceDefaults }
 
 class constructor InterfaceDefaults.TDefaultComparer<T>.ClassCreate;
+begin
+  InitInstance;
+end;
+
+class procedure InterfaceDefaults.TDefaultComparer<T>.InitInstance;
 var
   TypeData: PTypeData;
 begin
@@ -7357,9 +7376,51 @@ begin
       Instance.Compare := @InterfaceDefaults.Compare_Bin;
     end;
   end;
+
+  // Publish only after Instance is complete.
+  AtomicExchange(FInitState, INIT_INITIALIZED);
+end;
+
+class procedure InterfaceDefaults.TDefaultComparer<T>.EnsureInitialized;
+var
+  State: Integer;
+  Yield: TSyncYield;
+begin
+  if FInitState = INIT_INITIALIZED then
+    Exit;
+
+  Yield := TSyncYield.Create;
+
+  repeat
+    State := AtomicCmpExchange(FInitState, INIT_INITIALIZING, INIT_UNINITIALIZED);
+
+    case State of
+      INIT_UNINITIALIZED:
+        begin
+          try
+            InitInstance; // InitInstance() sets state to INIT_INITIALIZED when complete
+          except
+            AtomicExchange(FInitState, INIT_UNINITIALIZED);
+            raise;
+          end;
+          Exit;
+        end;
+
+      INIT_INITIALIZED:
+        Exit;
+
+      INIT_INITIALIZING:
+        Yield.Execute;
+    end;
+  until False;
 end;
 
 class constructor InterfaceDefaults.TDefaultEqualityComparer<T>.ClassCreate;
+begin
+  InitInstance;
+end;
+
+class procedure InterfaceDefaults.TDefaultEqualityComparer<T>.InitInstance;
 var
   TypeData: PTypeData;
 begin
@@ -7518,6 +7579,46 @@ begin
       Instance.GetHashCode := @InterfaceDefaults.GetHashCode_Bin;
     end;
   end;
+
+  // Set this instance as fully initialized
+  AtomicExchange(FInitState, INIT_INITIALIZED);
+end;
+
+// In some cases InterfaceDefaults.TDefaultEqualityComparer<T>.ClassCreate ctor is not called...
+// I'm still investigating why that happens. While this is not finished yet, the EnsureInitialized method will
+// prevent that the comparer instance is used without proper initialization (AM, 23/Jul/2026)
+class procedure InterfaceDefaults.TDefaultEqualityComparer<T>.EnsureInitialized;
+var
+  State: Integer;
+  Yield: TSyncYield;
+begin
+  if FInitState = INIT_INITIALIZED then
+    Exit;
+
+  Yield := TSyncYield.Create;
+
+  repeat
+    State := AtomicCmpExchange(FInitState, INIT_INITIALIZING, INIT_UNINITIALIZED);
+
+    case State of
+      INIT_UNINITIALIZED:
+        begin
+          try
+            InitInstance; // InitInstance() sets state to INIT_INITIALIZED when complete
+          except
+            AtomicExchange(FInitState, INIT_UNINITIALIZED);
+            raise;
+          end;
+          Exit;
+        end;
+
+      INIT_INITIALIZED:
+        Exit;
+
+      INIT_INITIALIZING:
+        Yield.Execute;
+    end;
+  until False;
 end;
 
 class function InterfaceDefaults.NopQueryInterface(Inst: Pointer; const IID: TGUID; out Obj): HResult; stdcall;
@@ -10558,6 +10659,7 @@ end;
 
 class function TComparer<T>.Default: IComparer<T>;
 begin
+  InterfaceDefaults.TDefaultComparer<T>.EnsureInitialized;
   Result := IComparer<T>(Pointer(@InterfaceDefaults.TDefaultComparer<T>.Instance));
 end;
 
@@ -11422,6 +11524,7 @@ end;
 
 procedure TArray.TSortHelper<T>.Init;
 begin
+  InterfaceDefaults.TDefaultComparer<T>.EnsureInitialized;
   Self.Inst := Pointer(@InterfaceDefaults.TDefaultComparer<T>.Instance);
   Self.Compare := InterfaceDefaults.TDefaultComparer<T>.Instance.Compare;
 end;
@@ -17986,8 +18089,12 @@ begin
 
   // comparer
   FComparer := AComparer;
-  if (FComparer = nil) then
-    Pointer(FComparer) := Pointer(@InterfaceDefaults.TDefaultEqualityComparer<TKey>.Instance);
+  if FComparer = nil then
+  begin
+    InterfaceDefaults.TDefaultEqualityComparer<TKey>.EnsureInitialized;
+
+    Pointer(FComparer) := @InterfaceDefaults.TDefaultEqualityComparer<TKey>.Instance;
+  end;
 
   // comparer methods
   TMethod(FComparerEquals) := IntfMethod(Pointer(FComparer), 3);
@@ -19521,6 +19628,7 @@ end;
 constructor TList<T>.Create(const AComparer: IComparer<T>);
 begin
   Create;
+  InterfaceDefaults.TDefaultComparer<T>.EnsureInitialized;
   if (Pointer(AComparer) <> @InterfaceDefaults.TDefaultComparer<T>.Instance) then
     FComparer := AComparer;
 end;
