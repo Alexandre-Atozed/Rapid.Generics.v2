@@ -2173,9 +2173,9 @@ type
   private
     FDict: TDictionary<T, TNothing>;
     FOnNotify: TCollectionNotifyEvent<T>;
-    function GetCapacity: NativeInt; inline;
-    function GetCount: NativeInt; inline;
-    function GetIsEmpty: Boolean; inline;
+    function GetCapacity: NativeInt; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+    function GetCount: NativeInt; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+    function GetIsEmpty: Boolean; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     procedure InternalNotify(Sender: TObject; const Item: T;
       Action: TCollectionNotification);
     procedure UpdateNotify;
@@ -2206,12 +2206,12 @@ type
     constructor Create(const AItems: array of T; const AComparer: IEqualityComparer<T>); overload;
     destructor Destroy; override;
 
-    function Add(const Value: T): Boolean; inline;
+    function Add(const Value: T): Boolean; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     function Remove(const Value: T): Boolean;
     function GetOrAdd(const Value: T): T;
     procedure Clear; inline;
     procedure TrimExcess; inline;
-    function Contains(const Value: T): Boolean; inline;
+    function Contains(const Value: T): Boolean; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     function ToArray: TArray<T>; override; final;
 
     function AddRange(const Values: array of T): Boolean; overload;
