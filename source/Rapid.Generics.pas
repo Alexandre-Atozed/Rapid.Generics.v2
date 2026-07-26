@@ -2209,8 +2209,8 @@ type
     function Add(const Value: T): Boolean; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     function Remove(const Value: T): Boolean;
     function GetOrAdd(const Value: T): T;
-    procedure Clear; inline;
-    procedure TrimExcess; inline;
+    procedure Clear; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+    procedure TrimExcess; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     function Contains(const Value: T): Boolean; {$IFDEF HAS_INLINE} inline; {$ENDIF}
     function ToArray: TArray<T>; override; final;
 
