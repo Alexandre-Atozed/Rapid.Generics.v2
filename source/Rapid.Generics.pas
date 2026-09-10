@@ -2032,6 +2032,9 @@ type
     procedure Remove(const Item: T); {$IFDEF HAS_INLINE} inline; {$ENDIF}
     procedure RemoveItem(const Item: T; Direction: TDirection);
     procedure UnlockList; {$IFDEF HAS_INLINE} inline; {$ENDIF}
+    function TryAdd(const Item: T): Boolean;
+    function Contains(const Item: T): Boolean;
+    function IndexOf(const Item: T): Integer;
     property Duplicates: TDuplicates read FDuplicates write FDuplicates;
   end;
 
@@ -24098,6 +24101,18 @@ begin
   end;
 end;
 
+function TThreadList<T>.TryAdd(const Item: T): Boolean;
+begin
+  LockList;
+  try
+    Result := not FList.Contains(Item);
+    if Result then
+      FList.Add(Item);
+  finally
+    UnlockList;
+  end;
+end;
+
 procedure TThreadList<T>.Clear;
 begin
   LockList;
@@ -24144,6 +24159,26 @@ begin
   LockList;
   try
     FList.RemoveItem(Item, Direction);
+  finally
+    UnlockList;
+  end;
+end;
+
+function TThreadList<T>.Contains(const Item: T): Boolean;
+begin
+  LockList;
+  try
+    Result := FList.Contains(Item);
+  finally
+    UnlockList;
+  end;
+end;
+
+function TThreadList<T>.IndexOf(const Item: T): Integer;
+begin
+  LockList;
+  try
+    Result := FList.IndexOf(Item);
   finally
     UnlockList;
   end;
