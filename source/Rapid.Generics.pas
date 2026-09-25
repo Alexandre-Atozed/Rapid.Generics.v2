@@ -2074,9 +2074,9 @@ type
   protected
     FOwnsObjects: Boolean;
     procedure SetOwnsObjects(const Value: Boolean);
-    procedure DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
-    procedure DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
-    procedure DisposeOnly(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+    procedure DisposeNotifyCaller(Sender: TObject; const Item: T; Action: TCollectionNotification);
+    procedure DisposeNotifyEvent(Sender: TObject; const Item: T; Action: TCollectionNotification);
+    procedure DisposeOnly(Sender: TObject; const Item: T; Action: TCollectionNotification);
     procedure SetNotifyMethods; override;
   public
     constructor Create(AOwnsObjects: Boolean = True); overload;
@@ -2089,9 +2089,9 @@ type
   protected
     FOwnsObjects: Boolean;
     procedure SetOwnsObjects(const Value: Boolean);
-    procedure DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
-    procedure DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
-    procedure DisposeOnly(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+    procedure DisposeNotifyCaller(Sender: TObject; const Item: T; Action: TCollectionNotification);
+    procedure DisposeNotifyEvent(Sender: TObject; const Item: T; Action: TCollectionNotification);
+    procedure DisposeOnly(Sender: TObject; const Item: T; Action: TCollectionNotification);
     procedure SetNotifyMethods; override;
   public
     constructor Create(AOwnsObjects: Boolean = True); overload;
@@ -2103,9 +2103,9 @@ type
   protected
     FOwnsObjects: Boolean;
     procedure SetOwnsObjects(const Value: Boolean);
-    procedure DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
-    procedure DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
-    procedure DisposeOnly(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+    procedure DisposeNotifyCaller(Sender: TObject; const Item: T; Action: TCollectionNotification);
+    procedure DisposeNotifyEvent(Sender: TObject; const Item: T; Action: TCollectionNotification);
+    procedure DisposeOnly(Sender: TObject; const Item: T; Action: TCollectionNotification);
     procedure SetNotifyMethods; override;
   public
     constructor Create(AOwnsObjects: Boolean = True); overload;
@@ -24343,21 +24343,21 @@ begin
   end;
 end;
 
-procedure TObjectList<T>.DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+procedure TObjectList<T>.DisposeNotifyCaller(Sender: TObject; const Item: T; Action: TCollectionNotification);
 begin
   Self.Notify(Item, Action);
   if (Action = cnRemoved) then
     Item. {$IFDEF NEXTGEN}DisposeOf{$ELSE}Free{$ENDIF};
 end;
 
-procedure TObjectList<T>.DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+procedure TObjectList<T>.DisposeNotifyEvent(Sender: TObject; const Item: T; Action: TCollectionNotification);
 begin
   Self.FOnNotify(Sender, Item, Action);
   if (Action = cnRemoved) then
     Item. {$IFDEF NEXTGEN}DisposeOf{$ELSE}Free{$ENDIF};
 end;
 
-procedure TObjectList<T>.DisposeOnly(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+procedure TObjectList<T>.DisposeOnly(Sender: TObject; const Item: T; Action: TCollectionNotification);
 begin
   if (Action = cnRemoved) then
     Item. {$IFDEF NEXTGEN}DisposeOf{$ELSE}Free{$ENDIF};
@@ -24415,21 +24415,21 @@ begin
   end;
 end;
 
-procedure TObjectStack<T>.DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+procedure TObjectStack<T>.DisposeNotifyCaller(Sender: TObject; const Item: T; Action: TCollectionNotification);
 begin
   Self.Notify(Item, Action);
   if (Action = cnRemoved) then
     Item. {$IFDEF NEXTGEN}DisposeOf{$ELSE}Free{$ENDIF};
 end;
 
-procedure TObjectStack<T>.DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+procedure TObjectStack<T>.DisposeNotifyEvent(Sender: TObject; const Item: T; Action: TCollectionNotification);
 begin
   Self.FOnNotify(Sender, Item, Action);
   if (Action = cnRemoved) then
     Item. {$IFDEF NEXTGEN}DisposeOf{$ELSE}Free{$ENDIF};
 end;
 
-procedure TObjectStack<T>.DisposeOnly(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+procedure TObjectStack<T>.DisposeOnly(Sender: TObject; const Item: T; Action: TCollectionNotification);
 begin
   if (Action = cnRemoved) then
     Item. {$IFDEF NEXTGEN}DisposeOf{$ELSE}Free{$ENDIF};
@@ -24492,21 +24492,21 @@ begin
   end;
 end;
 
-procedure TObjectQueue<T>.DisposeNotifyCaller(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+procedure TObjectQueue<T>.DisposeNotifyCaller(Sender: TObject; const Item: T; Action: TCollectionNotification);
 begin
   Self.Notify(Item, Action);
   if (Action = cnRemoved) then
     Item. {$IFDEF NEXTGEN}DisposeOf{$ELSE}Free{$ENDIF};
 end;
 
-procedure TObjectQueue<T>.DisposeNotifyEvent(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+procedure TObjectQueue<T>.DisposeNotifyEvent(Sender: TObject; const Item: T; Action: TCollectionNotification);
 begin
   Self.FOnNotify(Sender, Item, Action);
   if (Action = cnRemoved) then
     Item. {$IFDEF NEXTGEN}DisposeOf{$ELSE}Free{$ENDIF};
 end;
 
-procedure TObjectQueue<T>.DisposeOnly(Sender: TObject; const Item: TObject; Action: TCollectionNotification);
+procedure TObjectQueue<T>.DisposeOnly(Sender: TObject; const Item: T; Action: TCollectionNotification);
 begin
   if (Action = cnRemoved) then
     Item. {$IFDEF NEXTGEN}DisposeOf{$ELSE}Free{$ENDIF};
