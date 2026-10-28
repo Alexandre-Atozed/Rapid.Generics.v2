@@ -974,6 +974,7 @@ type
     class function Compare_Bin3(Inst: Pointer; const Left, Right: TBin3): Integer; static;
     class function Compare_Bin4(Inst: Pointer; Left, Right: Cardinal): Integer; static;
     class function Compare_Bin8(Inst: Pointer; Left, Right: Int64): Integer; static;
+    class function Compare_Bin8Ref(Inst: Pointer; const Left, Right: TBin8): Integer; static;
     class function Compare_Bin(const Inst: IComparerInst; Left, Right: PByte): Integer; static;
 
     // IEqualityComparer<T>
@@ -7281,6 +7282,7 @@ end;
 class procedure InterfaceDefaults.TDefaultComparer<T>.InitInstance;
 var
   TypeData: PTypeData;
+  Kind: TTypeKind;
 begin
   Instance.Vtable := @Instance.QueryInterface;
   Instance.Size := SizeOf(T);
@@ -7290,8 +7292,14 @@ begin
 
   // Compare
   TypeData := Pointer(TypeInfo(T));
-  Inc(NativeUInt(TypeData), NativeUInt(PByte(@PTypeInfo(TypeData).Name)^) + 2);
-  case GetTypeKind(T) of
+  if (TypeData <> nil) then
+  begin
+    Inc(NativeUInt(TypeData), NativeUInt(PByte(@PTypeInfo(TypeData).Name)^) + 2);
+    Kind := GetTypeKind(T);
+  end
+  else
+    Kind := tkUnknown; // no type info (e.g. set of an anonymous subrange): handled as binary data
+  case Kind of
     tkInteger, tkEnumeration, tkChar, tkWChar:
       case TypeData.OrdType of
         otSByte: Instance.Compare := @InterfaceDefaults.Compare_I1;
@@ -7373,7 +7381,7 @@ begin
       3: Instance.Compare := @InterfaceDefaults.Compare_Bin3;
       4: Instance.Compare := @InterfaceDefaults.Compare_Bin4;
       {$IFDEF LARGEINT}
-      8: Instance.Compare := @InterfaceDefaults.Compare_Bin8;
+      8: Instance.Compare := @InterfaceDefaults.Compare_Bin8Ref;
       {$ENDIF}
     else
       Instance.Compare := @InterfaceDefaults.Compare_Bin;
@@ -7426,6 +7434,7 @@ end;
 class procedure InterfaceDefaults.TDefaultEqualityComparer<T>.InitInstance;
 var
   TypeData: PTypeData;
+  Kind: TTypeKind;
 begin
   Instance.Vtable := @Instance.QueryInterface;
   Instance.Size := SizeOf(T);
@@ -7435,8 +7444,14 @@ begin
 
   // Equals/GetHashCode
   TypeData := Pointer(TypeInfo(T));
-  Inc(NativeUInt(TypeData), NativeUInt(PByte(@PTypeInfo(TypeData).Name)^) + 2);
-  case GetTypeKind(T) of
+  if (TypeData <> nil) then
+  begin
+    Inc(NativeUInt(TypeData), NativeUInt(PByte(@PTypeInfo(TypeData).Name)^) + 2);
+    Kind := GetTypeKind(T);
+  end
+  else
+    Kind := tkUnknown; // no type info (e.g. set of an anonymous subrange): handled as binary data
+  case Kind of
     tkClass:
       begin
         Instance.Equals := @InterfaceDefaults.Equals_Class;
@@ -7537,6 +7552,13 @@ begin
           end;
         {$IFDEF LARGEINT}
         8:
+          // An 8-byte set is passed by reference as a const parameter on Win64 (unlike Int64), so it needs the Bin8 variants
+          if GetTypeKind(T) = tkSet then
+          begin
+            Instance.Equals := @InterfaceDefaults.Equals_Bin8;
+            Instance.GetHashCode := @InterfaceDefaults.GetHashCode_Bin8;
+          end
+          else
           begin
             Instance.Equals := @InterfaceDefaults.Equals_N8;
             Instance.GetHashCode := @InterfaceDefaults.GetHashCode_N8;
@@ -7873,8 +7895,8 @@ begin
   V := PInt64(@Value)^;
   Result := Integer(V) + Integer(V shr 32) * 63689;
   Inc(Result, Result shr 8 * 63689);
-  Result := Result shr 16 * -1660269137;
-  Result := Result shr 24 * -1092754919;
+  Inc(Result, Result shr 16 * -1660269137);
+  Inc(Result, Result shr 24 * -1092754919);
 end;
 
 class function InterfaceDefaults.Equals_Class(Inst: Pointer; Left, Right: TObject): Boolean;
@@ -10331,6 +10353,12 @@ begin
   Result := Shortint(Byte(X >= Y) - Byte(X <= Y));
 end;
 
+// Interface-callable variant: const 8-byte records/sets are passed by reference on Win64
+class function InterfaceDefaults.Compare_Bin8Ref(Inst: Pointer; const Left, Right: TBin8): Integer;
+begin
+  Result := Compare_Bin8(Inst, PInt64(@Left)^, PInt64(@Right)^);
+end;
+
 class function InterfaceDefaults.Compare_Bin(const Inst: IComparerInst; Left, Right: PByte): Integer;
 label
   make_result, make_result_swaped;
@@ -10678,6 +10706,7 @@ end;
 
 class function TEqualityComparer<T>.Default: IEqualityComparer<T>;
 begin
+  InterfaceDefaults.TDefaultEqualityComparer<T>.EnsureInitialized;
   Result := IEqualityComparer<T>(Pointer(@InterfaceDefaults.TDefaultEqualityComparer<T>.Instance));
 end;
 
@@ -14522,6 +14551,8 @@ begin
   if (Count <= 1) then
     Exit;
 
+  InterfaceDefaults.TDefaultComparer<T>.EnsureInitialized;
+
   if (GetTypeKind(T) in [tkInteger, tkEnumeration, tkChar, tkWChar, tkInt64]) or
     ((GetTypeKind(T) = tkFloat) and (SizeOf(T) = 8)) then
   begin
@@ -14598,6 +14629,7 @@ begin
         end;
       tkVariant:
         begin
+          InterfaceDefaults.TDefaultComparer<Variant>.EnsureInitialized;
           TArray.Sort<Variant>(PVariant(@Values)^, Count,
             IComparer<Variant>(Pointer(@InterfaceDefaults.TDefaultComparer<Variant>.Instance)));
         end;
@@ -14770,6 +14802,8 @@ begin
   if (Count <= 1) then
     Exit;
 
+  InterfaceDefaults.TDefaultComparer<T>.EnsureInitialized;
+
   if (GetTypeKind(T) in [tkInteger, tkEnumeration, tkChar, tkWChar, tkInt64]) or
     ((GetTypeKind(T) = tkFloat) and (SizeOf(T) = 8)) then
   begin
@@ -14846,6 +14880,7 @@ begin
         end;
       tkVariant:
         begin
+          InterfaceDefaults.TDefaultComparer<Variant>.EnsureInitialized;
           TArray.SortDescending<Variant>(PVariant(@Values)^, Count,
             IComparer<Variant>(Pointer(@InterfaceDefaults.TDefaultComparer<Variant>.Instance)));
         end;
@@ -16121,6 +16156,8 @@ begin
     end;
   end;
 
+  InterfaceDefaults.TDefaultComparer<T>.EnsureInitialized;
+
   if (GetTypeKind(T) in [tkInteger, tkEnumeration, tkChar, tkWChar, tkInt64]) or
     ((GetTypeKind(T) = tkFloat) and (SizeOf(T) = 8)) then
   begin
@@ -16192,6 +16229,7 @@ begin
     tkVariant:
       begin
         helper.Count := Count;
+        InterfaceDefaults.TDefaultComparer<Variant>.EnsureInitialized;
         helper.Comparer := Pointer(@InterfaceDefaults.TDefaultComparer<Variant>.Instance);
         I := SearchUniversals<T>(TRAIIHelper<T>.P(Values) + Index, helper, Item);
       end;
@@ -16370,6 +16408,8 @@ begin
     end;
   end;
 
+  InterfaceDefaults.TDefaultComparer<T>.EnsureInitialized;
+
   if (GetTypeKind(T) in [tkInteger, tkEnumeration, tkChar, tkWChar, tkInt64]) or
     ((GetTypeKind(T) = tkFloat) and (SizeOf(T) = 8)) then
   begin
@@ -16441,6 +16481,7 @@ begin
     tkVariant:
       begin
         helper.Count := Count;
+        InterfaceDefaults.TDefaultComparer<Variant>.EnsureInitialized;
         helper.Comparer := Pointer(@InterfaceDefaults.TDefaultComparer<Variant>.Instance);
         I := SearchDescendingUniversals<T>(TRAIIHelper<T>.P(Values) + Index, helper, Item);
       end;
@@ -25262,7 +25303,7 @@ begin
   if Self = AOther then
     Exit(True);
   if Count = 0 then
-    Exit(True);  // empty set is a subset of anything — valid short-circuit here
+    Exit(True);  // empty set is a subset of anything â€” valid short-circuit here
 
   e := AOther.GetEnumerator;
   try

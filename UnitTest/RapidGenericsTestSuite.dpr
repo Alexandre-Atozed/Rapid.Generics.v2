@@ -60,7 +60,10 @@ uses
   uListRecTest in 'uListRecTest.pas',
   uArrayTest in 'uArrayTest.pas',
   uHashSetTest in 'uHashSetTest.pas',
-  uQueueWrapGrowTest in 'uQueueWrapGrowTest.pas';
+  uQueueWrapGrowTest in 'uQueueWrapGrowTest.pas',
+  uInitOrderEarly in 'uInitOrderEarly.pas',
+  uInitOrderLate in 'uInitOrderLate.pas',
+  uDefaultComparerTest in 'uDefaultComparerTest.pas';
 
 {$R *.res}
 
