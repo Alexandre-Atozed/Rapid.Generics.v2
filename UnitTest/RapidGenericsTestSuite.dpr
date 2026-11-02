@@ -61,8 +61,10 @@ uses
   uArrayTest in 'uArrayTest.pas',
   uHashSetTest in 'uHashSetTest.pas',
   uQueueWrapGrowTest in 'uQueueWrapGrowTest.pas',
-  uInitOrderEarly in 'uInitOrderEarly.pas',
+  // Keep Late before Early: their circular dependency makes Early's
+  // initialization probes run before Late's class constructors.
   uInitOrderLate in 'uInitOrderLate.pas',
+  uInitOrderEarly in 'uInitOrderEarly.pas',
   uDefaultComparerTest in 'uDefaultComparerTest.pas';
 
 {$R *.res}
